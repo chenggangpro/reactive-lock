@@ -15,6 +15,12 @@ import java.util.function.Supplier;
 public interface ReactiveDistributedLock {
 
     /**
+     * get lock Key
+     * @return
+     */
+    String getLockKey();
+
+    /**
      * Try to acquire the lock once. Lock is acquired for a pre configured duration.
      * @return if lock succeeded then return true otherwise return false
      * <strong>if flow is empty default return false</strong>
@@ -54,13 +60,17 @@ public interface ReactiveDistributedLock {
      */
     default <T> Mono<T> acquireAndExecute(Supplier<Mono<T>> executionSupplier) {
         return acquire()
-                .flatMap(acquireResult -> executionSupplier
-                            .get()
-                            .flatMap(result -> this.release()
-                                    .flatMap(releaseResult -> Mono.just(result))
+                .flatMap(acquireResult -> Mono.just(acquireResult)
+                            .filter(result -> result)
+                            .switchIfEmpty(Mono.error(new CannotAcquireLockException("Failed to Obtain Lock ,LockKey: " + getLockKey())))
+                            .flatMap(lockResult -> executionSupplier
+                                    .get()
+                                    .flatMap(result -> this.release()
+                                            .flatMap(releaseResult -> Mono.just(result))
+                                    )
+                                    .switchIfEmpty(this.release().then(Mono.empty()))
+                                    .onErrorResume(throwable -> this.release().flatMap(r -> Mono.error(throwable)))
                             )
-                            .switchIfEmpty(this.release().then(Mono.empty()))
-                            .onErrorResume(throwable -> this.release().flatMap(r -> Mono.error(throwable)))
                 );
     }
 
@@ -75,13 +85,17 @@ public interface ReactiveDistributedLock {
      */
     default <T> Mono<T> acquireAndExecute(Duration duration, Supplier<Mono<T>> executionSupplier) {
         return acquire(duration)
-                .flatMap(acquireResult -> executionSupplier
-                        .get()
-                        .flatMap(result -> this.release()
-                                .flatMap(releaseResult -> Mono.just(result))
+                .flatMap(acquireResult -> Mono.just(acquireResult)
+                        .filter(result -> result)
+                        .switchIfEmpty(Mono.error(new CannotAcquireLockException("Failed to Obtain Lock ,LockKey: " + getLockKey())))
+                        .flatMap(lockResult -> executionSupplier
+                                .get()
+                                .flatMap(result -> this.release()
+                                        .flatMap(releaseResult -> Mono.just(result))
+                                )
+                                .switchIfEmpty(this.release().then(Mono.empty()))
+                                .onErrorResume(throwable -> this.release().flatMap(r -> Mono.error(throwable)))
                         )
-                        .switchIfEmpty(this.release().then(Mono.empty()))
-                        .onErrorResume(throwable -> this.release().flatMap(r -> Mono.error(throwable)))
                 );
     }
 
@@ -89,19 +103,23 @@ public interface ReactiveDistributedLock {
      * Acquire a lock and release it after action is executed or fails.
      *
      * @param <T>  type od value emitted by the action
-     * @param mono to be executed subscribed to when lock is acquired
+     * @param executionSupplier     to be executed subscribed to when lock is acquired
      * @return true if lock is acquired.
      * @see ReactiveDistributedLock#acquire()
      */
-    default <T> Flux<T> acquireAndExecuteMany(Flux<T> mono) {
+    default <T> Flux<T> acquireAndExecuteMany(Supplier<Flux<T>> executionSupplier) {
         return acquire()
-                .filter(acquireResult -> acquireResult)
-                .flatMapMany(acquireResult -> mono
-                        .flatMap(result -> this.release()
-                                .flatMap(releaseResult -> Mono.just(result))
+                .flatMapMany(acquireResult -> Mono.just(acquireResult)
+                        .filter(result -> result)
+                        .switchIfEmpty(Mono.error(new CannotAcquireLockException("Failed to Obtain Lock ,LockKey: " + getLockKey())))
+                        .flatMapMany(lockResult -> executionSupplier
+                                .get()
+                                .flatMap(result -> this.release()
+                                        .flatMap(releaseResult -> Mono.just(result))
+                                )
+                                .switchIfEmpty(this.release().thenMany(Flux.empty()))
+                                .onErrorResume(throwable -> this.release().flatMap(r -> Mono.error(throwable)))
                         )
-                        .switchIfEmpty(this.release().thenMany(Flux.empty()))
-                        .onErrorResume(throwable -> this.release().flatMap(r -> Mono.error(throwable)))
                 );
     }
 
@@ -116,16 +134,18 @@ public interface ReactiveDistributedLock {
      */
     default <T> Flux<T> acquireAndExecuteMany(Duration duration, Supplier<Flux<T>> executionSupplier) {
         return acquire(duration)
-                .filter(acquireResult -> acquireResult)
-                .flatMapMany(acquireResult -> executionSupplier
-                        .get()
-                        .flatMap(result -> this.release()
-                                .flatMap(releaseResult -> Mono.just(result))
+                .flatMapMany(acquireResult -> Mono.just(acquireResult)
+                        .filter(result -> result)
+                        .switchIfEmpty(Mono.error(new CannotAcquireLockException("Failed to Obtain Lock ,LockKey: " + getLockKey())))
+                        .flatMapMany(lockResult -> executionSupplier
+                                .get()
+                                .flatMap(result -> this.release()
+                                        .flatMap(releaseResult -> Mono.just(result))
+                                )
+                                .switchIfEmpty(this.release().thenMany(Flux.empty()))
+                                .onErrorResume(throwable -> this.release().flatMap(r -> Mono.error(throwable)))
                         )
-                        .switchIfEmpty(this.release().thenMany(Mono.empty()))
-                        .onErrorResume(throwable -> this.release().flatMap(r -> Mono.error(throwable)))
                 );
     }
-
 
 }

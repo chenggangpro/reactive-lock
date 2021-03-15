@@ -12,6 +12,7 @@ import pro.chenggang.project.reactive.redis.distributedlock.core.ReactiveRedisDi
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
@@ -34,7 +35,6 @@ public class ReactiveTests {
     @BeforeTestClass
     public void init(){
         Hooks.onOperatorDebug();
-        StepVerifier.setDefaultTimeout(Duration.ofSeconds(10));
     }
 
     @Test
@@ -71,10 +71,15 @@ public class ReactiveTests {
         String key = "LOCK_DEFAULT";
         Flux<String> flux = Flux.range(0, 3)
                 .flatMap(value -> this.reactiveRedisDistributedLockRegistry.obtain(key)
-                        .acquireAndExecute(() -> processFunctions.processDelayFunction(Duration.ofSeconds(3)))
-                        .onErrorResume(CannotAcquireLockException.class,exception -> Mono.just("Can Not Acquired Th Lock"))
-                )
-                .doOnNext(System.out::println);
+                        .acquireAndExecute(() ->
+                                processFunctions.processDelayFunction(Duration.ofSeconds(2))
+                        )
+                        .doOnNext(System.out::println)
+                        .onErrorResume(throwable -> CannotAcquireLockException.class.isAssignableFrom(throwable.getClass()),throwable -> {
+                            System.out.println("Lock Error");
+                            return Mono.just(FAILED);
+                        })
+                );
         StepVerifier.create(flux)
                 .expectNext(OK)
                 .expectNext(OK)
@@ -88,13 +93,20 @@ public class ReactiveTests {
         ProcessFunctions processFunctions = new ProcessFunctions();
         String key = "LOCK_GIVEN_DURATION";
         Flux<String> flux = Flux.range(0, 3)
+                .subscribeOn(Schedulers.parallel())
                 .flatMap(value -> this.reactiveRedisDistributedLockRegistry.obtain(key)
-                        .acquireAndExecute(Duration.ofSeconds(3),() -> processFunctions.processDelayFunction(Duration.ofSeconds(1)))
-                )
-                .doOnNext(System.out::println);
+                        .acquireAndExecute(Duration.ofSeconds(3), () ->
+                                processFunctions.processDelayFunction(Duration.ofSeconds(2))
+                        )
+                        .doOnNext(System.out::println)
+                        .onErrorResume(throwable -> CannotAcquireLockException.class.isAssignableFrom(throwable.getClass()), throwable -> {
+                            System.out.println("Lock Error");
+                            return Mono.just(FAILED);
+                        })
+                );
         StepVerifier.create(flux)
                 .expectNext(OK)
-                .expectNext(OK)
+                .expectNext(FAILED)
                 .expectNext(OK)
                 .verifyComplete();
 
@@ -102,14 +114,14 @@ public class ReactiveTests {
 
     class ProcessFunctions {
 
-        public static final String OK = "OK";
-        public static final String FAILED = "FAILED";
+        static final String OK = "OK";
+        static final String FAILED = "FAILED";
 
-        private Mono<String> processDelayFunction(Duration delayDuration){
+        Mono<String> processDelayFunction(Duration delayDuration){
             return Mono.just(OK).delayElement(delayDuration);
         }
 
-        private Mono<String> processFunction(){
+        Mono<String> processFunction(){
             return Mono.just(OK);
         }
     }

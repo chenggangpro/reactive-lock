@@ -284,6 +284,11 @@ public final class ReactiveRedisDistributedLockRegistry implements InitializingB
 		}
 
 		@Override
+		public String getLockKey() {
+			return this.lockKey;
+		}
+
+		@Override
 		public Mono<Boolean> acquireOnce() {
 			log.debug("Acquire Lock Once,LockKey:{}",this.lockKey);
 			return this.obtainLock()
@@ -310,9 +315,9 @@ public final class ReactiveRedisDistributedLockRegistry implements InitializingB
 								}
 							})
 					)
+					.defaultIfEmpty(false)
 					.doOnNext(lockResult -> log.info("Obtain Lock,Lock Result :{},Lock Info:{}",lockResult,this))
-					.doOnError(this::rethrowAsLockException)
-					.switchIfEmpty(Mono.error(new CannotAcquireLockException("Failed to Obtain Lock ,LockKey: " + this.lockKey)));
+					.doOnError(this::rethrowAsLockException);
 		}
 
 		@Override
@@ -320,7 +325,7 @@ public final class ReactiveRedisDistributedLockRegistry implements InitializingB
 			return this.isAcquiredInThisProcess()
 					.filter(isThisProcess -> isThisProcess)
 					.flatMap(isThisProcess -> this.removeLockKey()
-							.doOnNext(v -> log.info("Released Lock:{}",this))
+							.doOnNext(releaseResult -> log.info("Released Lock:{},Lock Info:{}",releaseResult,this))
 							.onErrorResume(throwable -> Mono.fromRunnable(() -> ReflectionUtils.rethrowRuntimeException(throwable)))
 							.switchIfEmpty(Mono.error(new IllegalStateException("Lock was released in the store due to expiration. " + "The integrity of data protected by this lock may have been compromised.")))
 					);
