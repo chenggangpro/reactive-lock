@@ -3,9 +3,9 @@ package pro.chenggang.project.reactive.redis.distributedlock.core;
 import org.springframework.dao.CannotAcquireLockException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.annotation.NonNull;
 
 import java.time.Duration;
-import java.util.function.Supplier;
 
 /**
  * A reactive distributed lock with Reactor API.
@@ -41,7 +41,7 @@ public interface ReactiveDistributedLock {
      * <strong>the given duration must less than the default duration.Otherwise the lockKey well be expire by redis with default expire duration</strong>
      * <strong>if flow is empty then throw an excpetion {@link CannotAcquireLockException}</strong>
      */
-    Mono<Boolean> acquire(Duration duration);
+    Mono<Boolean> acquire(@NonNull Duration duration);
 
     /**
      * Release the lock.
@@ -54,17 +54,16 @@ public interface ReactiveDistributedLock {
      * Acquire a lock and release it after action is executed or fails.
      *
      * @param <T>  type od value emitted by the action
-     * @param executionSupplier to be executed subscribed to when lock is acquired
+     * @param monoExecution to be executed subscribed to when lock is acquired
      * @return true if lock is acquired.
      * @see ReactiveDistributedLock#acquire()
      */
-    default <T> Mono<T> acquireAndExecute(Supplier<Mono<T>> executionSupplier) {
+    default <T> Mono<T> acquireAndExecute(@NonNull Mono<T> monoExecution) {
         return acquire()
                 .flatMap(acquireResult -> Mono.just(acquireResult)
                             .filter(result -> result)
                             .switchIfEmpty(Mono.error(new CannotAcquireLockException("Failed to Obtain Lock ,LockKey: " + getLockKey())))
-                            .flatMap(lockResult -> executionSupplier
-                                    .get()
+                            .flatMap(lockResult -> monoExecution
                                     .flatMap(result -> this.release()
                                             .flatMap(releaseResult -> Mono.just(result))
                                     )
@@ -79,17 +78,16 @@ public interface ReactiveDistributedLock {
      *
      * @param <T>      type od value emitted by the action
      * @param duration how much time must pass for the acquired lock to expire
-     * @param executionSupplier     to be executed subscribed to when lock is acquired
+     * @param monoExecution     to be executed subscribed to when lock is acquired
      * @return true, if lock is acquired
      * @see ReactiveDistributedLock#acquire(Duration)
      */
-    default <T> Mono<T> acquireAndExecute(Duration duration, Supplier<Mono<T>> executionSupplier) {
+    default <T> Mono<T> acquireAndExecute(@NonNull Duration duration, @NonNull Mono<T> monoExecution) {
         return acquire(duration)
                 .flatMap(acquireResult -> Mono.just(acquireResult)
                         .filter(result -> result)
                         .switchIfEmpty(Mono.error(new CannotAcquireLockException("Failed to Obtain Lock ,LockKey: " + getLockKey())))
-                        .flatMap(lockResult -> executionSupplier
-                                .get()
+                        .flatMap(lockResult -> monoExecution
                                 .flatMap(result -> this.release()
                                         .flatMap(releaseResult -> Mono.just(result))
                                 )
@@ -103,17 +101,16 @@ public interface ReactiveDistributedLock {
      * Acquire a lock and release it after action is executed or fails.
      *
      * @param <T>  type od value emitted by the action
-     * @param executionSupplier     to be executed subscribed to when lock is acquired
+     * @param fluxExecution  to be executed subscribed to when lock is acquired
      * @return true if lock is acquired.
      * @see ReactiveDistributedLock#acquire()
      */
-    default <T> Flux<T> acquireAndExecuteMany(Supplier<Flux<T>> executionSupplier) {
+    default <T> Flux<T> acquireAndExecuteMany(@NonNull Flux<T> fluxExecution) {
         return acquire()
                 .flatMapMany(acquireResult -> Mono.just(acquireResult)
                         .filter(result -> result)
                         .switchIfEmpty(Mono.error(new CannotAcquireLockException("Failed to Obtain Lock ,LockKey: " + getLockKey())))
-                        .flatMapMany(lockResult -> executionSupplier
-                                .get()
+                        .flatMapMany(lockResult -> fluxExecution
                                 .flatMap(result -> this.release()
                                         .flatMap(releaseResult -> Mono.just(result))
                                 )
@@ -128,17 +125,16 @@ public interface ReactiveDistributedLock {
      *
      * @param <T>      type od value emitted by the action
      * @param duration how much time must pass for the acquired lock to expire
-     * @param executionSupplier     to be executed subscribed to when lock is acquired
+     * @param fluxExecution  to be executed subscribed to when lock is acquired
      * @return true, if lock is acquired
      * @see ReactiveDistributedLock#acquire(Duration)
      */
-    default <T> Flux<T> acquireAndExecuteMany(Duration duration, Supplier<Flux<T>> executionSupplier) {
+    default <T> Flux<T> acquireAndExecuteMany(@NonNull Duration duration, @NonNull Flux<T> fluxExecution) {
         return acquire(duration)
                 .flatMapMany(acquireResult -> Mono.just(acquireResult)
                         .filter(result -> result)
                         .switchIfEmpty(Mono.error(new CannotAcquireLockException("Failed to Obtain Lock ,LockKey: " + getLockKey())))
-                        .flatMapMany(lockResult -> executionSupplier
-                                .get()
+                        .flatMapMany(lockResult -> fluxExecution
                                 .flatMap(result -> this.release()
                                         .flatMap(releaseResult -> Mono.just(result))
                                 )

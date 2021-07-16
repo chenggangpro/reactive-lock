@@ -3,7 +3,7 @@ spring:
     database: 0
     host: 127.0.0.1
     port: 6379
-    password:
+    password: 123123
     timeout: 5000
     lettuce:
       pool:

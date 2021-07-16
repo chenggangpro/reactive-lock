@@ -71,8 +71,7 @@ public class ReactiveTests {
         String key = "LOCK_DEFAULT";
         Flux<String> flux = Flux.range(0, 3)
                 .flatMap(value -> this.reactiveRedisDistributedLockRegistry.obtain(key)
-                        .acquireAndExecute(() ->
-                                processFunctions.processDelayFunction(Duration.ofSeconds(2))
+                        .acquireAndExecute(processFunctions.processDelayFunction(Duration.ofSeconds(2))
                         )
                         .doOnNext(System.out::println)
                         .onErrorResume(throwable -> CannotAcquireLockException.class.isAssignableFrom(throwable.getClass()),throwable -> {
@@ -95,7 +94,8 @@ public class ReactiveTests {
         Flux<String> flux = Flux.range(0, 3)
                 .subscribeOn(Schedulers.parallel())
                 .flatMap(value -> this.reactiveRedisDistributedLockRegistry.obtain(key)
-                        .acquireAndExecute(Duration.ofSeconds(3), () ->
+                        .acquireAndExecute(
+                                Duration.ofSeconds(3),
                                 processFunctions.processDelayFunction(Duration.ofSeconds(2))
                         )
                         .doOnNext(System.out::println)
