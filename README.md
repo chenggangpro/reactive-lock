@@ -42,7 +42,7 @@ reactiveRedisDistributedLockRegistry.obtain(key)
  
 ```java
 reactiveRedisDistributedLockRegistry.obtain(key)
-                        .acquireAndExecute(() -> Mono.just("OK"))
+                        .acquireAndExecute(Mono.just("OK"))
                         .onErrorResume(CannotAcquireLockException.class,exception -> Mono.just("Can Not Acquired Th Lock"));
 ```
 
@@ -50,7 +50,7 @@ reactiveRedisDistributedLockRegistry.obtain(key)
  
 ```java
 reactiveRedisDistributedLockRegistry.obtain(key)
-                        .acquireAndExecute(Duration.ofSeconds(3),() -> Mono.just("OK"))
+                        .acquireAndExecute(Duration.ofSeconds(3),Mono.just("OK"))
                         .onErrorResume(CannotAcquireLockException.class,exception -> Mono.just("Can Not Acquired Th Lock"));
 ```
 
