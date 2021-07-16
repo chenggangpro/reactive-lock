@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.3.9.RELEASE</version>
+        <version>2.3.12.RELEASE</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -16,10 +16,31 @@
 
     <name>reactive-redis-distributed-lock</name>
     <description>Reactive Redis Distributed Lock Based On SpringBoot</description>
+    <url>https://github.com/chenggangpro/reactive-redis-distributed-lock</url>
+
+    <developers>
+        <developer>
+            <id>ChengGang</id>
+            <name>ChengGang</name>
+            <email>chenggangpro@gmail.com</email>
+            <roles>
+                <role>Developer</role>
+            </roles>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git@github.com:chenggangpro/reactive-redis-distributed-lock.git</connection>
+        <developerConnection>scm:git:git@github.com:chenggangpro/reactive-redis-distributed-lock.git</developerConnection>
+        <url>https://github.com/chenggangpro/reactive-redis-distributed-lock</url>
+    </scm>
 
     <properties>
         <java.version>11</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
