@@ -1,3 +1,5 @@
+> ⚠️ only support Mono execution
+> core operation should changed to using `Mono.usingWhen()` or `Flux.usingWhen()`
 # reactive-redis-distributed-lock
 Reactive Distributed Lock Based On SpringBootReactiveRedis
 
