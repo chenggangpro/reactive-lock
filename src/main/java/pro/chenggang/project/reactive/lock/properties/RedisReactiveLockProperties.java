@@ -1,10 +1,12 @@
-package pro.chenggang.project.reactive.redis.distributedlock.properties;
+package pro.chenggang.project.reactive.lock.properties;
 
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import pro.chenggang.project.reactive.lock.option.ReactiveLockType;
 
 import java.time.Duration;
+import java.util.Set;
 
 /**
  * Properties Configuration
@@ -14,7 +16,7 @@ import java.time.Duration;
 @Getter
 @Setter
 @ToString
-public class RedisDistributedLockProperties {
+public class RedisReactiveLockProperties {
 
     public static final String REDIS_LOCK_PROPERTIES_PREFIX = "lock.redis.reactive";
 
@@ -26,11 +28,15 @@ public class RedisDistributedLockProperties {
     /**
      * max redis key expire duration
      */
-    private Duration expireAfter = Duration.ofSeconds(60);
+    private Duration expireAfter = Duration.ofMinutes(1);
 
     /**
      * expire evict idle duration
      */
-    private Duration expireEvictIdle = Duration.ofSeconds(30);
+    private Duration expireEvictIdle = Duration.ofSeconds(3);
 
+    /**
+     * reactive lock type
+     */
+    private Set<ReactiveLockType> reactiveLockType = Set.of(ReactiveLockType.DEFAULT);
 }

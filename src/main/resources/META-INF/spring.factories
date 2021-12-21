@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-pro.chenggang.project.reactive.redis.distributedlock.configuration.ReactiveRedisDistributedLockAutoConfiguration
+pro.chenggang.project.reactive.lock.configuration.ReactiveLockAutoConfiguration

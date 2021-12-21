@@ -17,3 +17,6 @@ lock:
     reactive:
       expire-after: 10s
       expire-evict-idle: 1s
+      reactive-lock-type:
+        - DEFAULT
+        - REDIS

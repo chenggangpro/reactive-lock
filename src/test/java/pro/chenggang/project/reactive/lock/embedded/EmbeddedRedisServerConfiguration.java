@@ -1,4 +1,4 @@
-package pro.chenggang.project.reactive.redis.distributedlock.embedded;
+package pro.chenggang.project.reactive.lock.embedded;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

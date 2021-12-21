@@ -1,36 +1,16 @@
-# reactive-lock
-Reactive Lock Demo
+package pro.chenggang.project.reactive.lock.core;
 
-### Use Case
+import org.jetbrains.annotations.NotNull;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-* 1 . Make Sure Use Spring Boot Starter Dependency 
+import java.time.Duration;
+import java.util.function.Function;
 
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
-</dependency>
-```
-
-* 2 . Configure Properties
-
-
-```yaml
-lock:
-  redis:
-    reactive:
-      expire-after: 10s
-      expire-evict-idle: 1s
-      reactive-lock-type:
-        - DEFAULT  # default
-        - REDIS   # redis
-```
-
-* 3 . Autowired `ReactiveLockRegistry defaultReactiveLockRegistry` / `ReactiveLockRegistry redisReactiveLockRegistry` By Spring
-
-* 4 . Use `ReactiveLockRegistry` With Your Reactive Application
-
-```java
+/**
+ * @author: chenggang
+ * @date 11/26/21.
+ */
 public interface ReactiveLock {
 
     /**
@@ -68,11 +48,3 @@ public interface ReactiveLock {
     <T> Flux<T> lockThenExecuteMany(@NotNull Duration duration, @NotNull Function<Boolean, Flux<T>> lockResultExecution);
 
 }
-```
-
-* 5 .If You Need More Detail About This Please Read The Source Code and test cases.
-
-# Reference
-
-* RedisLockRegistry: https://docs.spring.io/spring-integration/docs/5.3.6.RELEASE/reference/html/redis.html#redis-lock-registry
-* Trigger Mono Execution After Another Mono Terminates: https://stackoverflow.com/questions/50686524/how-to-trigger-mono-execution-after-another-mono-terminates 
