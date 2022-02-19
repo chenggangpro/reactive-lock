@@ -3,20 +3,24 @@ package pro.chenggang.project.reactive.lock.core;
 import reactor.core.publisher.Mono;
 
 /**
- * @author: chenggang
+ * The Stateful reactive lock.
+ *
+ * @author Gang Cheng
  * @date 12/21/21.
  */
-public interface StatefulReactiveLock extends ReactiveLock{
+public interface StatefulReactiveLock extends ReactiveLock {
 
     /**
-     * get latestLock time
-     * @return
+     * the latest lock time
+     *
+     * @return long
      */
     long latestLockTime();
 
     /**
-     * is in process
-     * @return
+     * is the lock in process
+     *
+     * @return mono
      */
     Mono<Boolean> isInProcess();
 }

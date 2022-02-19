@@ -5,15 +5,26 @@ import pro.chenggang.project.reactive.lock.core.StatefulReactiveLock;
 import java.time.Duration;
 
 /**
- * @author: chenggang
+ * The Default reactive lock registry.
+ *
+ * @author Gang Cheng
  * @date 12/21/21.
  */
 public class DefaultReactiveLockRegistry extends AbstractAutoCleanupReactiveLockRegistry {
 
+    /**
+     * Instantiates a new Default reactive lock registry.
+     */
     public DefaultReactiveLockRegistry() {
         this(DEFAULT_EXPIRE_EVICT_IDLE, DEFAULT_MAX_LOCK_LIFETIME);
     }
 
+    /**
+     * Instantiates a new Default reactive lock registry.
+     *
+     * @param expireEvictIdle the expire evict idle
+     * @param maxLockLifeTime the max lock life time
+     */
     public DefaultReactiveLockRegistry(Duration expireEvictIdle, Duration maxLockLifeTime) {
         super(expireEvictIdle, maxLockLifeTime);
     }

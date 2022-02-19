@@ -1,7 +1,9 @@
 package pro.chenggang.project.reactive.lock.core;
 
 /**
- * @author: chenggang
+ * The Reactive lock registry.
+ *
+ * @author Gang Cheng
  * @date 12/21/21.
  */
 public interface ReactiveLockRegistry {
@@ -12,17 +14,19 @@ public interface ReactiveLockRegistry {
     String DEFAULT_LOCK_KEY = "@@REACTIVE_LOCK_DEFAULT_KEY@@";
 
     /**
-     * obtain lock by default key
-     * @return
+     * obtain lock by default lock key
+     *
+     * @return reactive lock
      */
-    default ReactiveLock obtain(){
+    default ReactiveLock obtain() {
         return obtain(DEFAULT_LOCK_KEY);
     }
 
     /**
      * obtain lock by lock key
-     * @param lockKey
-     * @return
+     *
+     * @param lockKey the lock key
+     * @return reactive lock
      */
     ReactiveLock obtain(String lockKey);
 }

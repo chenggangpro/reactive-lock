@@ -22,7 +22,7 @@ import static pro.chenggang.project.reactive.lock.tests.ProcessFunctions.FAILED;
 import static pro.chenggang.project.reactive.lock.tests.ProcessFunctions.OK;
 
 /**
- * @author: chenggang
+ * @author Gang Cheng
  * @date 2021-03-14.
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)

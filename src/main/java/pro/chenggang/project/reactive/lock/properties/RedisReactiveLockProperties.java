@@ -9,7 +9,8 @@ import java.time.Duration;
 import java.util.Set;
 
 /**
- * Properties Configuration
+ * Redis Reactive Lock Properties Configuration
+ *
  * @author chenggang
  * @date 2021/03/14
  */
@@ -18,6 +19,9 @@ import java.util.Set;
 @ToString
 public class RedisReactiveLockProperties {
 
+    /**
+     * The constant REDIS_LOCK_PROPERTIES_PREFIX.
+     */
     public static final String REDIS_LOCK_PROPERTIES_PREFIX = "lock.redis.reactive";
 
     /**

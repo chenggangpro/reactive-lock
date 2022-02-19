@@ -16,19 +16,33 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * @author: chenggang
+ * The Abstract auto cleanup reactive lock registry.
+ *
+ * @author Gang Cheng
  * @date 12/21/21.
  */
 @Slf4j
-public abstract class AbstractAutoCleanupReactiveLockRegistry implements ReactiveLockRegistry , InitializingBean , DisposableBean {
+public abstract class AbstractAutoCleanupReactiveLockRegistry implements ReactiveLockRegistry, InitializingBean, DisposableBean {
 
+    /**
+     * The constant DEFAULT_EXPIRE_EVICT_IDLE.
+     */
     protected static final Duration DEFAULT_EXPIRE_EVICT_IDLE = Duration.ofMinutes(3);
+    /**
+     * The constant DEFAULT_MAX_LOCK_LIFETIME.
+     */
     protected static final Duration DEFAULT_MAX_LOCK_LIFETIME = Duration.ofMinutes(10);
-    private final Scheduler scheduler = Schedulers.newSingle("redis-lock-evict",true);
+    private final Scheduler scheduler = Schedulers.newSingle("redis-lock-evict", true);
     private final Map<String, StatefulReactiveLock> lockRegistry = new ConcurrentHashMap<>();
     private final Duration expireEvictIdle;
     private final Duration maxLockLifeTime;
 
+    /**
+     * Instantiates a new Abstract auto cleanup reactive lock registry.
+     *
+     * @param expireEvictIdle the expire evict idle
+     * @param maxLockLifeTime the max lock life time
+     */
     public AbstractAutoCleanupReactiveLockRegistry(Duration expireEvictIdle, Duration maxLockLifeTime) {
         this.expireEvictIdle = expireEvictIdle;
         this.maxLockLifeTime = maxLockLifeTime;
@@ -36,8 +50,9 @@ public abstract class AbstractAutoCleanupReactiveLockRegistry implements Reactiv
 
     /**
      * new reactive lock
-     * @param lockKey
-     * @return
+     *
+     * @param lockKey the lock key
+     * @return stateful reactive lock
      */
     protected abstract StatefulReactiveLock newReactiveLock(String lockKey);
 
@@ -73,7 +88,7 @@ public abstract class AbstractAutoCleanupReactiveLockRegistry implements Reactiv
 
     @Override
     public void destroy() throws Exception {
-        if(!this.scheduler.isDisposed()){
+        if (!this.scheduler.isDisposed()) {
             log.debug("Shutdown Auto Remove Unused Lock Execution");
             this.scheduler.dispose();
         }

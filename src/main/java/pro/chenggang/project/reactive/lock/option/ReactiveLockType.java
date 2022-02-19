@@ -1,7 +1,9 @@
 package pro.chenggang.project.reactive.lock.option;
 
 /**
- * @author: chenggang
+ * The Reactive lock type.
+ *
+ * @author Gang Cheng
  * @date 12/21/21.
  */
 public enum ReactiveLockType {

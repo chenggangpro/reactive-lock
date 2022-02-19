@@ -5,7 +5,8 @@ import org.springframework.context.annotation.Configuration;
 import redis.embedded.RedisServer;
 
 /**
- * @author: chenggang
+ * Embedded Redis Server Configuration
+ * @author Gang Cheng
  * @date 2021-03-14.
  */
 @Configuration

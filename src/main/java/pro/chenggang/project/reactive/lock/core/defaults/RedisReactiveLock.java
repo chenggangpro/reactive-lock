@@ -17,7 +17,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * @author: chenggang
+ * The Redis reactive lock.
+ *
+ * @author Gang Cheng
  * @date 12/21/21.
  */
 @Slf4j
@@ -36,15 +38,22 @@ public class RedisReactiveLock extends AbstractReactiveLock {
     private final ReactiveLockExecutor reactiveLockExecutor;
     private volatile boolean unlinkAvailable = true;
 
+    /**
+     * Instantiates a new Redis reactive lock.
+     *
+     * @param reactiveRedisConnectionFactory the reactive redis connection factory
+     * @param lockKey                        the lock key
+     * @param expireAfter                    the expire after
+     */
     public RedisReactiveLock(ReactiveRedisConnectionFactory reactiveRedisConnectionFactory, String lockKey, Duration expireAfter) {
         Assert.notNull(reactiveRedisConnectionFactory, "ReactiveRedisConnectionFactory cannot be null");
         Assert.notNull(lockKey, "'lockKey' cannot be null");
         this.reactiveStringRedisTemplate = new ReactiveStringRedisTemplate(reactiveRedisConnectionFactory);
-        this.reactiveLockExecutor = new RedisReactiveLockExecutor(lockKey,expireAfter == null ? DEFAULT_EXPIRE_AFTER : expireAfter);
+        this.reactiveLockExecutor = new RedisReactiveLockExecutor(lockKey, expireAfter == null ? DEFAULT_EXPIRE_AFTER : expireAfter);
     }
 
     @Override
-    protected ReactiveLockExecutor getReactiveLockData() {
+    protected ReactiveLockExecutor getReactiveLockExecutor() {
         return this.reactiveLockExecutor;
     }
 
@@ -65,6 +74,12 @@ public class RedisReactiveLock extends AbstractReactiveLock {
         private final long expireAfter;
         private volatile long lockedAt;
 
+        /**
+         * Instantiates a new Redis reactive lock executor.
+         *
+         * @param lockKey     the lock key
+         * @param expireAfter the expire after
+         */
         public RedisReactiveLockExecutor(String lockKey, Duration expireAfter) {
             Assert.notNull(lockKey, "'lockKey' cannot be null");
             this.lockKey = lockKey;
@@ -80,7 +95,8 @@ public class RedisReactiveLock extends AbstractReactiveLock {
         public Mono<Boolean> isInProcess() {
             return RedisReactiveLock.this.reactiveStringRedisTemplate.opsForValue()
                     .get(this.lockKey)
-                    .map(this.lockId::equals);
+                    .map(this.lockId::equals)
+                    .defaultIfEmpty(false);
         }
 
         @Override
@@ -88,7 +104,7 @@ public class RedisReactiveLock extends AbstractReactiveLock {
             return Mono
                     .from(RedisReactiveLock.this.reactiveStringRedisTemplate.execute(RedisReactiveLock.this.obtainLockScript,
                             Collections.singletonList(this.lockKey),
-                            List.of(this.lockId,String.valueOf(this.expireAfter)))
+                            List.of(this.lockId, String.valueOf(this.expireAfter)))
                     )
                     .map(success -> {
                         boolean result = Boolean.TRUE.equals(success);
@@ -103,22 +119,32 @@ public class RedisReactiveLock extends AbstractReactiveLock {
         public Mono<Boolean> release() {
             return Mono.just(RedisReactiveLock.this.unlinkAvailable)
                     .filter(unlink -> unlink)
-                    .flatMap(unlink -> RedisReactiveLock.this.reactiveStringRedisTemplate
-                            .unlink(this.lockKey)
-                            .doOnError(throwable -> {
-                                RedisReactiveLock.this.unlinkAvailable = false;
-                                if (log.isDebugEnabled()) {
-                                    log.debug("The UNLINK command has failed (not supported on the Redis server?); " +
-                                            "falling back to the regular DELETE command", throwable);
-                                } else {
-                                    log.warn("The UNLINK command has failed (not supported on the Redis server?); " +
-                                            "falling back to the regular DELETE command: " + throwable.getMessage());
-                                }
-                            })
-                            .onErrorResume(throwable -> RedisReactiveLock.this.reactiveStringRedisTemplate.delete(this.lockKey))
+                    .flatMap(unlink -> this.isInProcess()
+                            .filter(inProcess -> inProcess)
+                            .flatMap(inProcess -> RedisReactiveLock.this.reactiveStringRedisTemplate
+                                    .unlink(this.lockKey)
+                                    .doOnError(throwable -> {
+                                        RedisReactiveLock.this.unlinkAvailable = false;
+                                        if (log.isDebugEnabled()) {
+                                            log.debug("The UNLINK command has failed (not supported on the Redis server?); " +
+                                                    "falling back to the regular DELETE command", throwable);
+                                        } else {
+                                            log.warn("The UNLINK command has failed (not supported on the Redis server?); " +
+                                                    "falling back to the regular DELETE command: " + throwable.getMessage());
+                                        }
+                                    })
+                                    .map(unlinkResult -> unlinkResult > 0)
+                                    .onErrorResume(throwable -> RedisReactiveLock.this.reactiveStringRedisTemplate.delete(this.lockKey)
+                                            .map(deleteResult -> deleteResult > 0)
+                                    )
+                            )
+                            .switchIfEmpty(Mono.defer(() -> {
+                                log.warn("Lock({}) was released in the store due to expiration." +
+                                        "The integrity of data protected by this lock may have been compromised.", this.lockKey);
+                                return Mono.just(false);
+                            }))
                     )
-                    .switchIfEmpty(RedisReactiveLock.this.reactiveStringRedisTemplate.delete(this.lockKey))
-                    .then(Mono.just(true));
+                    .switchIfEmpty(Mono.just(false));
         }
 
         @Override

@@ -20,7 +20,7 @@ import java.time.Duration;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
- * @author: chenggang
+ * @author Gang Cheng
  * @date 2021-03-14.
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
