@@ -11,7 +11,7 @@ import java.util.Set;
 /**
  * Redis Reactive Lock Properties Configuration
  *
- * @author chenggang
+ * @author Gang Cheng
  * @date 2021/03/14
  */
 @Getter

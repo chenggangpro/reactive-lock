@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The Redis reactive lock.
@@ -73,6 +74,7 @@ public class RedisReactiveLock extends AbstractReactiveLock {
         private final String lockKey;
         private final long expireAfter;
         private volatile long lockedAt;
+        private final AtomicBoolean localLock = new AtomicBoolean(false);
 
         /**
          * Instantiates a new Redis reactive lock executor.
@@ -101,48 +103,61 @@ public class RedisReactiveLock extends AbstractReactiveLock {
 
         @Override
         public Mono<Boolean> obtain() {
-            return Mono
-                    .from(RedisReactiveLock.this.reactiveStringRedisTemplate.execute(RedisReactiveLock.this.obtainLockScript,
-                            Collections.singletonList(this.lockKey),
-                            List.of(this.lockId, String.valueOf(this.expireAfter)))
+            return Mono.just(this.localLock)
+                    .map(lock -> lock.compareAndSet(false,true))
+                    .filter(localLockResult -> localLockResult)
+                    .flatMap(localLockResult -> Mono
+                            .from(RedisReactiveLock.this.reactiveStringRedisTemplate.execute(RedisReactiveLock.this.obtainLockScript,
+                                    Collections.singletonList(this.lockKey),
+                                    List.of(this.lockId, String.valueOf(this.expireAfter)))
+                            )
+                            .map(success -> {
+                                boolean result = Boolean.TRUE.equals(success);
+                                if (result) {
+                                    this.lockedAt = System.currentTimeMillis();
+                                }
+                                return result;
+                            })
+                            .doFinally(signal -> this.localLock.compareAndSet(true,false))
+
                     )
-                    .map(success -> {
-                        boolean result = Boolean.TRUE.equals(success);
-                        if (result) {
-                            this.lockedAt = System.currentTimeMillis();
-                        }
-                        return result;
-                    });
+                    .switchIfEmpty(Mono.just(false));
         }
 
         @Override
         public Mono<Boolean> release() {
-            return Mono.just(RedisReactiveLock.this.unlinkAvailable)
-                    .filter(unlink -> unlink)
-                    .flatMap(unlink -> this.isInProcess()
-                            .filter(inProcess -> inProcess)
-                            .flatMap(inProcess -> RedisReactiveLock.this.reactiveStringRedisTemplate
-                                    .unlink(this.lockKey)
-                                    .doOnError(throwable -> {
-                                        RedisReactiveLock.this.unlinkAvailable = false;
-                                        if (log.isDebugEnabled()) {
-                                            log.debug("The UNLINK command has failed (not supported on the Redis server?); " +
-                                                    "falling back to the regular DELETE command", throwable);
-                                        } else {
-                                            log.warn("The UNLINK command has failed (not supported on the Redis server?); " +
-                                                    "falling back to the regular DELETE command: " + throwable.getMessage());
-                                        }
-                                    })
-                                    .map(unlinkResult -> unlinkResult > 0)
-                                    .onErrorResume(throwable -> RedisReactiveLock.this.reactiveStringRedisTemplate.delete(this.lockKey)
-                                            .map(deleteResult -> deleteResult > 0)
+            return Mono.just(this.localLock)
+                    .map(lock -> lock.compareAndSet(false,true))
+                    .filter(localReleaseResult -> localReleaseResult)
+                    .flatMap(localReleaseResult -> Mono.just(RedisReactiveLock.this.unlinkAvailable)
+                            .filter(unlink -> unlink)
+                            .flatMap(unlink -> this.isInProcess()
+                                    .filter(inProcess -> inProcess)
+                                    .flatMap(inProcess -> RedisReactiveLock.this.reactiveStringRedisTemplate
+                                            .unlink(this.lockKey)
+                                            .doOnError(throwable -> {
+                                                RedisReactiveLock.this.unlinkAvailable = false;
+                                                if (log.isDebugEnabled()) {
+                                                    log.debug("The UNLINK command has failed (not supported on the Redis server?); " +
+                                                            "falling back to the regular DELETE command", throwable);
+                                                } else {
+                                                    log.warn("The UNLINK command has failed (not supported on the Redis server?); " +
+                                                            "falling back to the regular DELETE command: " + throwable.getMessage());
+                                                }
+                                            })
+                                            .map(unlinkResult -> unlinkResult > 0)
+                                            .onErrorResume(throwable -> RedisReactiveLock.this.reactiveStringRedisTemplate.delete(this.lockKey)
+                                                    .map(deleteResult -> deleteResult > 0)
+                                            )
                                     )
+                                    .switchIfEmpty(Mono.defer(() -> {
+                                        log.warn("Lock({}) was released in the store due to expiration." +
+                                                "The integrity of data protected by this lock may have been compromised.", this.lockKey);
+                                        return Mono.just(false);
+                                    }))
                             )
-                            .switchIfEmpty(Mono.defer(() -> {
-                                log.warn("Lock({}) was released in the store due to expiration." +
-                                        "The integrity of data protected by this lock may have been compromised.", this.lockKey);
-                                return Mono.just(false);
-                            }))
+                            .doFinally(signal -> this.localLock.compareAndSet(true,false))
+                            .switchIfEmpty(Mono.just(false))
                     )
                     .switchIfEmpty(Mono.just(false));
         }

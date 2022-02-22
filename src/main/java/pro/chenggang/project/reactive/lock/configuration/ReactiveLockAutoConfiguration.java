@@ -20,7 +20,7 @@ import reactor.core.publisher.Flux;
 /**
  * ReactiveRedisLockRegistry AutoConfiguration
  *
- * @author chenggang
+ * @author Gang Cheng
  * @date 2021-03-14.
  */
 @Slf4j

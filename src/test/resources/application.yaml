@@ -15,8 +15,8 @@ spring:
 lock:
   redis:
     reactive:
-      expire-after: 10s
-      expire-evict-idle: 1s
+      expire-after: PT1M
+      expire-evict-idle: PT10S
       reactive-lock-type:
         - DEFAULT
         - REDIS

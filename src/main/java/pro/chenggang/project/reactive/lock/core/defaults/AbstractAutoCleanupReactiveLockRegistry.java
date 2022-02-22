@@ -58,6 +58,10 @@ public abstract class AbstractAutoCleanupReactiveLockRegistry implements Reactiv
 
     @Override
     public ReactiveLock obtain(String lockKey) {
+        ReactiveLock reactiveLock = lockRegistry.get(lockKey);
+        if (reactiveLock != null) {
+            return reactiveLock;
+        }
         return lockRegistry.computeIfAbsent(lockKey, this::newReactiveLock);
     }
 
