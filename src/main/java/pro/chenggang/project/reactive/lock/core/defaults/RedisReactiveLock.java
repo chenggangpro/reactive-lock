@@ -73,8 +73,8 @@ public class RedisReactiveLock extends AbstractReactiveLock {
         private final String lockId = UUID.randomUUID().toString();
         private final String lockKey;
         private final long expireAfter;
-        private volatile long lockedAt;
         private final AtomicBoolean localLock = new AtomicBoolean(false);
+        private volatile long lockedAt;
 
         /**
          * Instantiates a new Redis reactive lock executor.
@@ -104,7 +104,7 @@ public class RedisReactiveLock extends AbstractReactiveLock {
         @Override
         public Mono<Boolean> obtain() {
             return Mono.just(this.localLock)
-                    .map(lock -> lock.compareAndSet(false,true))
+                    .map(lock -> lock.compareAndSet(false, true))
                     .filter(localLockResult -> localLockResult)
                     .flatMap(localLockResult -> Mono
                             .from(RedisReactiveLock.this.reactiveStringRedisTemplate.execute(RedisReactiveLock.this.obtainLockScript,
@@ -118,7 +118,7 @@ public class RedisReactiveLock extends AbstractReactiveLock {
                                 }
                                 return result;
                             })
-                            .doFinally(signal -> this.localLock.compareAndSet(true,false))
+                            .doFinally(signal -> this.localLock.compareAndSet(true, false))
 
                     )
                     .switchIfEmpty(Mono.just(false));
@@ -127,13 +127,14 @@ public class RedisReactiveLock extends AbstractReactiveLock {
         @Override
         public Mono<Boolean> release() {
             return Mono.just(this.localLock)
-                    .map(lock -> lock.compareAndSet(false,true))
+                    .map(lock -> lock.compareAndSet(false, true))
                     .filter(localReleaseResult -> localReleaseResult)
                     .flatMap(localReleaseResult -> Mono.just(RedisReactiveLock.this.unlinkAvailable)
-                            .filter(unlink -> unlink)
+                            //if unlink is supported
+                            .filter(isUnlinkSupported -> isUnlinkSupported)
                             .flatMap(unlink -> this.isInProcess()
-                                    .filter(inProcess -> inProcess)
-                                    .flatMap(inProcess -> RedisReactiveLock.this.reactiveStringRedisTemplate
+                                    .filter(isInProcess -> isInProcess)
+                                    .flatMap(isInProcess -> RedisReactiveLock.this.reactiveStringRedisTemplate
                                             .unlink(this.lockKey)
                                             .doOnError(throwable -> {
                                                 RedisReactiveLock.this.unlinkAvailable = false;
@@ -156,8 +157,15 @@ public class RedisReactiveLock extends AbstractReactiveLock {
                                         return Mono.just(false);
                                     }))
                             )
-                            .doFinally(signal -> this.localLock.compareAndSet(true,false))
-                            .switchIfEmpty(Mono.just(false))
+                            //if unlink is not supported
+                            .switchIfEmpty(Mono.defer(() -> this.isInProcess()
+                                            .filter(isInProcess -> isInProcess)
+                                            .flatMap(isInProcess -> RedisReactiveLock.this.reactiveStringRedisTemplate.delete(this.lockKey))
+                                            .map(deleteResult -> deleteResult > 0)
+                                            .switchIfEmpty(Mono.just(false))
+                                    )
+                            )
+                            .doFinally(signal -> this.localLock.compareAndSet(true, false))
                     )
                     .switchIfEmpty(Mono.just(false));
         }
