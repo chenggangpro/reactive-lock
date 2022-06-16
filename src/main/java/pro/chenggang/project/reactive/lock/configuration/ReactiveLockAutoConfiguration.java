@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import pro.chenggang.project.reactive.lock.core.ReactiveLockRegistry;
+import pro.chenggang.project.reactive.lock.core.clh.CLHReactiveLockRegistry;
 import pro.chenggang.project.reactive.lock.core.defaults.DefaultReactiveLockRegistry;
 import pro.chenggang.project.reactive.lock.core.defaults.RedisReactiveLockRegistry;
 import pro.chenggang.project.reactive.lock.properties.RedisReactiveLockProperties;
@@ -68,6 +69,20 @@ public class ReactiveLockAutoConfiguration {
     public ReactiveLockRegistry defaultReactiveLockRegistry(RedisReactiveLockProperties redisReactiveLockProperties) {
         ReactiveLockRegistry reactiveLockRegistry = new DefaultReactiveLockRegistry(redisReactiveLockProperties.getExpireEvictIdle(), redisReactiveLockProperties.getExpireAfter());
         log.info("Load Default Reactive Lock Registry Success,Default Expire Duration:{}", redisReactiveLockProperties.getExpireAfter());
+        return reactiveLockRegistry;
+    }
+
+    /**
+     * CLH reactive lock registry.
+     *
+     * @param redisReactiveLockProperties the redis reactive lock properties
+     * @return the reactive lock registry
+     */
+    @Bean
+    @ConditionalOnExpression("@redisReactiveLockProperties.reactiveLockType.contains(T(pro.chenggang.project.reactive.lock.option.ReactiveLockType).CLH)")
+    public ReactiveLockRegistry clhReactiveLockRegistry(RedisReactiveLockProperties redisReactiveLockProperties) {
+        ReactiveLockRegistry reactiveLockRegistry = new CLHReactiveLockRegistry(redisReactiveLockProperties.getExpireEvictIdle(), redisReactiveLockProperties.getExpireAfter());
+        log.info("Load CLH Reactive Lock Registry Success,Default Expire Duration:{}", redisReactiveLockProperties.getExpireAfter());
         return reactiveLockRegistry;
     }
 

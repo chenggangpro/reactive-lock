@@ -20,3 +20,7 @@ lock:
       reactive-lock-type:
         - DEFAULT
         - REDIS
+        - CLH
+logging:
+  level:
+    pro.chenggang: DEBUG

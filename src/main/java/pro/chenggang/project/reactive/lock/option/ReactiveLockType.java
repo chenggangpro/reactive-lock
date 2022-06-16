@@ -17,4 +17,9 @@ public enum ReactiveLockType {
      * redis reactive lock
      */
     REDIS,
+
+    /**
+     * jvm reactive lock with CLH algorithm
+     */
+    CLH,
 }
