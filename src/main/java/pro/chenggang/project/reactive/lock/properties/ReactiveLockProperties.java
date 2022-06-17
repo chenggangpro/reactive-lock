@@ -11,7 +11,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Reactive Lock Properties Configuration
+ * Reactive Lock Properties
  *
  * @author Gang Cheng
  * @date 2021/03/14
@@ -32,14 +32,16 @@ public class ReactiveLockProperties implements InitializingBean {
     private String registryKeyPrefix;
 
     /**
-     * max redis key expire duration
+     * max lock expire duration
+     * default is PT3M
      */
-    private Duration expireAfter = Duration.ofMinutes(1);
+    private Duration expireAfter = Duration.ofMinutes(3);
 
     /**
      * expire evict idle duration
+     * default is PT1M
      */
-    private Duration expireEvictIdle = Duration.ofSeconds(3);
+    private Duration expireEvictIdle = Duration.ofMinutes(1);
 
     /**
      * reactive lock type

@@ -67,11 +67,14 @@ public abstract class AbstractAutoCleanupReactiveLockRegistry implements Reactiv
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        log.debug("Initialize Auto Remove Unused Lock Execution :{}",this.getClass().getSimpleName());
+        String classSimpleName = this.getClass().getSimpleName();
+        log.debug("Initialize Auto Remove Unused Lock Execution :{}", classSimpleName);
         Flux.interval(expireEvictIdle, scheduler)
                 .flatMap(value -> {
                     long now = System.currentTimeMillis();
-                    log.trace("Auto Remove Unused Lock ,Evict Triggered");
+                    if (log.isTraceEnabled()) {
+                        log.trace("Auto Remove Unused Lock [{}],Evict Triggered", classSimpleName);
+                    }
                     return Flux.fromIterable(this.lockRegistry.entrySet())
                             .filter(entry -> now - entry.getValue().latestLockTime() > maxLockLifeTime.toMillis())
                             .flatMap(entry -> entry.getValue()
@@ -79,10 +82,10 @@ public abstract class AbstractAutoCleanupReactiveLockRegistry implements Reactiv
                                     .filter(inProcess -> !inProcess)
                                     .doOnNext(inProcess -> {
                                         this.lockRegistry.remove(entry.getKey());
-                                        log.debug("Auto Remove Unused Lock,Lock Info:{}", entry);
+                                        log.debug("Auto Remove Unused Lock[{}],Lock Info:{}", classSimpleName, entry);
                                     })
                                     .onErrorResume(throwable -> {
-                                        log.error("Auto Remove Unused Locks Occur Exception,Lock Info: " + entry, throwable);
+                                        log.error("Auto Remove Unused Locks[{}],Occur Exception,Lock Info: {}", classSimpleName, entry, throwable);
                                         return Mono.empty();
                                     })
                             );
@@ -93,7 +96,7 @@ public abstract class AbstractAutoCleanupReactiveLockRegistry implements Reactiv
     @Override
     public void destroy() throws Exception {
         if (!this.scheduler.isDisposed()) {
-            log.debug("Shutdown Auto Remove Unused Lock Execution :{}",this.getClass().getSimpleName());
+            log.debug("Shutdown Auto Remove Unused Lock Execution :{}", this.getClass().getSimpleName());
             this.scheduler.dispose();
         }
     }

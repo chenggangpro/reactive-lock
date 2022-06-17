@@ -14,12 +14,20 @@ public interface ReactiveLockRegistry {
     String DEFAULT_LOCK_KEY = "@@REACTIVE_LOCK_DEFAULT_KEY@@";
 
     /**
+     * get default lock key
+     * @return the default lock key
+     */
+    default String getDefaultLockKey(){
+        return DEFAULT_LOCK_KEY + this.getClass().getSimpleName();
+    }
+
+    /**
      * obtain lock by default lock key
      *
      * @return reactive lock
      */
     default ReactiveLock obtain() {
-        return obtain(DEFAULT_LOCK_KEY);
+        return obtain(getDefaultLockKey());
     }
 
     /**

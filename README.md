@@ -25,6 +25,7 @@ lock:
         - DEFAULT   # default
         - REDIS    # redis
         - CLH     # jvm lock using CLH algorithm
+        - MCS     # jvm lock using MCS algorithm
 ```
 
 * 3 . Autowired By Spring
