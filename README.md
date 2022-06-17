@@ -158,43 +158,86 @@ DefaultReactiveLockBenchmark.testTryLock     avgt   25    6540.598 ±   325.970 
 * Throughput
 
 ```txt
-Benchmark                                 Mode  Cnt        Score        Error  Units
-CLHReactiveLockBenchmark.testLockExpire  thrpt   25    59275.185 ±   7092.562  ops/s
-CLHReactiveLockBenchmark.testTryLock     thrpt   25  1264332.104 ± 129578.197  ops/s
+Benchmark                                 Mode  Cnt       Score       Error  Units
+CLHReactiveLockBenchmark.testLockExpire  thrpt   25   63322.356 ±  7832.461  ops/s
+CLHReactiveLockBenchmark.testTryLock     thrpt   25  623214.243 ± 24038.862  ops/s
 ```
 
 * Sample Time
 
 ```txt
 Benchmark                                                         Mode       Cnt           Score       Error  Units
-CLHReactiveLockBenchmark.testLockExpire                         sample  17979423      126310.404 ± 13139.887  ns/op
-CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.00    sample                  2116.000              ns/op
-CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.50    sample                  4296.000              ns/op
-CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.90    sample                 13312.000              ns/op
-CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.95    sample                 65152.000              ns/op
-CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.99    sample                303616.000              ns/op
-CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.999   sample               1382400.000              ns/op
-CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.9999  sample               6856704.000              ns/op
-CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p1.00    sample            3699376128.000              ns/op
-CLHReactiveLockBenchmark.testTryLock                            sample  51411352       10481.055 ±  1140.515  ns/op
-CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.00          sample                   619.000              ns/op
-CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.50          sample                  1492.000              ns/op
-CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.90          sample                  1764.000              ns/op
-CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.95          sample                  1862.000              ns/op
-CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.99          sample                  3224.000              ns/op
-CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.999         sample                204288.000              ns/op
-CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.9999        sample               6209536.000              ns/op
-CLHReactiveLockBenchmark.testTryLock:testTryLock·p1.00          sample            2701131776.000              ns/op
+CLHReactiveLockBenchmark.testLockExpire                         sample  17765734      125104.458 ± 13210.713  ns/op
+CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.00    sample                  2800.000              ns/op
+CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.50    sample                  5840.000              ns/op
+CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.90    sample                 29536.000              ns/op
+CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.95    sample                 88448.000              ns/op
+CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.99    sample                501760.000              ns/op
+CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.999   sample               2199552.000              ns/op
+CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.9999  sample              10787659.776              ns/op
+CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p1.00    sample            5653921792.000              ns/op
+CLHReactiveLockBenchmark.testTryLock                            sample  40584590       16660.122 ±   826.936  ns/op
+CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.00          sample                   203.000              ns/op
+CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.50          sample                  2744.000              ns/op
+CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.90          sample                  6520.000              ns/op
+CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.95          sample                 19840.000              ns/op
+CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.99          sample                136192.000              ns/op
+CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.999         sample                922624.000              ns/op
+CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.9999        sample               6476111.053              ns/op
+CLHReactiveLockBenchmark.testTryLock:testTryLock·p1.00          sample            2092957696.000              ns/op
 ```
 
 * Average Time
 
 ```txt
 Benchmark                                Mode  Cnt       Score       Error  Units
-CLHReactiveLockBenchmark.testLockExpire  avgt   25  139036.252 ± 20347.247  ns/op
-CLHReactiveLockBenchmark.testTryLock     avgt   25    5846.578 ±   408.578  ns/op
+CLHReactiveLockBenchmark.testLockExpire  avgt   25  127635.344 ± 13423.417  ns/op
+CLHReactiveLockBenchmark.testTryLock     avgt   25   13006.849 ±   483.094  ns/op
 ```
 
+#### MCSReactiveLock
+
+> See `pro.chenggang.project.reactive.lock.benchmark.MCSReactiveLockBenchmarkTests`
+
+* Throughput
+
+```txt
+Benchmark                                 Mode  Cnt       Score       Error  Units
+CLHReactiveLockBenchmark.testLockExpire  thrpt   25   63137.995 ±  7652.748  ops/s
+CLHReactiveLockBenchmark.testTryLock     thrpt   25  647349.972 ± 12047.181  ops/s
+```
+
+* Sample Time
+
+```txt
+Benchmark                                                         Mode       Cnt           Score       Error  Units
+CLHReactiveLockBenchmark.testLockExpire                         sample  17801805      129631.454 ± 12975.130  ns/op
+CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.00    sample                  2864.000              ns/op
+CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.50    sample                  5952.000              ns/op
+CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.90    sample                 28832.000              ns/op
+CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.95    sample                 84864.000              ns/op
+CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.99    sample                508928.000              ns/op
+CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.999   sample               2327322.624              ns/op
+CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p0.9999  sample              13860864.000              ns/op
+CLHReactiveLockBenchmark.testLockExpire:testLockExpire·p1.00    sample            4420796416.000              ns/op
+CLHReactiveLockBenchmark.testTryLock                            sample  40136633       15044.424 ±   436.492  ns/op
+CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.00          sample                   102.000              ns/op
+CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.50          sample                  3840.000              ns/op
+CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.90          sample                  9024.000              ns/op
+CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.95          sample                 23232.000              ns/op
+CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.99          sample                146176.000              ns/op
+CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.999         sample                835584.000              ns/op
+CLHReactiveLockBenchmark.testTryLock:testTryLock·p0.9999        sample               3620864.000              ns/op
+CLHReactiveLockBenchmark.testTryLock:testTryLock·p1.00          sample             273678336.000              ns/op
+```
+
+* Average Time
+
+```txt
+Benchmark                                Mode  Cnt       Score       Error  Units
+CLHReactiveLockBenchmark.testLockExpire  avgt   25  133124.659 ± 15444.404  ns/op
+CLHReactiveLockBenchmark.testTryLock     avgt   25   13092.472 ±   193.290  ns/op
+```
 
 #### RedisReactiveLock
 

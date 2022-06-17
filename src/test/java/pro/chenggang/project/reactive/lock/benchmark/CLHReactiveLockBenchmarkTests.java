@@ -28,7 +28,7 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
- * DefaultReactiveLock Benchmark Tests
+ * CLHReactiveLock Benchmark Tests
  *
  * @author Gang Cheng
  * @since 1.0.0

@@ -28,7 +28,7 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
- * DefaultReactiveLock Benchmark Tests
+ * MCSReactiveLock Benchmark Tests
  *
  * @author Gang Cheng
  * @since 1.0.0
@@ -75,23 +75,23 @@ public class MCSReactiveLockBenchmarkTests {
     @State(Scope.Benchmark)
     public static class CLHReactiveLockBenchmark {
 
-        private ReactiveLockRegistry clhReactiveLockRegistry;
+        private ReactiveLockRegistry mcsReactiveLockRegistry;
 
         @Setup(Level.Trial)
         public void start() throws Exception {
-            clhReactiveLockRegistry = new MCSReactiveLockRegistry(Duration.ofSeconds(10), Duration.ofSeconds(30));
-            ((InitializingBean) clhReactiveLockRegistry).afterPropertiesSet();
+            mcsReactiveLockRegistry = new MCSReactiveLockRegistry(Duration.ofSeconds(10), Duration.ofSeconds(30));
+            ((InitializingBean) mcsReactiveLockRegistry).afterPropertiesSet();
         }
 
         @TearDown(Level.Trial)
         public void shutdown() throws Exception {
-            ((DisposableBean) clhReactiveLockRegistry).destroy();
+            ((DisposableBean) mcsReactiveLockRegistry).destroy();
         }
 
 
         @Benchmark
         public void testTryLock(Blackhole blackhole) {
-            clhReactiveLockRegistry.obtain()
+            mcsReactiveLockRegistry.obtain()
                     .tryLockThenExecute(
                             lockResult -> {
                                 if (!lockResult) {
@@ -106,7 +106,7 @@ public class MCSReactiveLockBenchmarkTests {
 
         @Benchmark
         public void testLockExpire(Blackhole blackhole) {
-            clhReactiveLockRegistry.obtain()
+            mcsReactiveLockRegistry.obtain()
                     .lockThenExecute(
                             Duration.ofSeconds(10),
                             lockResult -> {
