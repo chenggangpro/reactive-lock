@@ -2,6 +2,7 @@ package pro.chenggang.project.reactive.lock.tests;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.test.context.ContextConfiguration;
@@ -29,6 +30,7 @@ import static pro.chenggang.project.reactive.lock.tests.ProcessFunctions.OK;
 @ContextConfiguration(classes = ReactiveLockApplication.class)
 public class CLHJvmReactiveLockTests {
 
+    @Qualifier("clhReactiveLockRegistry")
     @Autowired
     private ReactiveLockRegistry clhReactiveLockRegistry;
 

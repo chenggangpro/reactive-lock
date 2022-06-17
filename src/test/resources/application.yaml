@@ -13,14 +13,14 @@ spring:
         min-idle: 3
         time-between-eviction-runs: 5000
 lock:
-  redis:
-    reactive:
-      expire-after: PT1M
-      expire-evict-idle: PT10S
-      reactive-lock-type:
-        - DEFAULT
-        - REDIS
-        - CLH
+  reactive:
+    expire-after: PT1M
+    expire-evict-idle: PT10S
+    reactive-lock-type:
+      - DEFAULT
+      - REDIS
+      - CLH
+      - MCS
 logging:
   level:
     pro.chenggang: DEBUG

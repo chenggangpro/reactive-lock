@@ -11,13 +11,16 @@ import reactor.retry.Repeat;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.Function;
 
 /**
  * Jvm reactive lock based on CLH algorithm
+ *
  * @author Gang Cheng
  * @version 1.0.0
  * @since 1.0.0
@@ -29,6 +32,7 @@ public class CLHJvmReactiveLock implements StatefulReactiveLock {
             AtomicReferenceFieldUpdater.newUpdater(CLHJvmReactiveLock.class, CLHNode.class, "tail");
     private final AtomicLong lockAt = new AtomicLong(-1);
     private final AtomicBoolean isInProgress = new AtomicBoolean(false);
+    private final AtomicReference<String> currentLockId = new AtomicReference<>();
     private volatile CLHNode tail;
 
     @Override
@@ -38,7 +42,7 @@ public class CLHJvmReactiveLock implements StatefulReactiveLock {
 
     @Override
     public <T> Flux<T> tryLockThenExecuteMany(@NotNull Function<Boolean, Flux<T>> lockResultExecution) {
-        return null;
+        return this.executeWithFlux(null, lockResultExecution);
     }
 
     @Override
@@ -48,7 +52,7 @@ public class CLHJvmReactiveLock implements StatefulReactiveLock {
 
     @Override
     public <T> Flux<T> lockThenExecuteMany(@NotNull Duration duration, @NotNull Function<Boolean, Flux<T>> lockResultExecution) {
-        return null;
+        return this.executeWithFlux(duration, lockResultExecution);
     }
 
     @Override
@@ -58,7 +62,16 @@ public class CLHJvmReactiveLock implements StatefulReactiveLock {
 
     @Override
     public Mono<Boolean> isInProcess() {
-        return Mono.just(this.isInProgress.getAcquire());
+        return Mono.just(this.isInProgress.getAcquire() || Objects.nonNull(tail));
+    }
+
+    @Override
+    public String toString() {
+        return "CLHJvmReactiveLock{" +
+                "currentLockId=" + currentLockId.get() +
+                ", lockAt=" + lockAt +
+                ", isInProgress=" + isInProgress +
+                '}';
     }
 
     /**
@@ -81,18 +94,19 @@ public class CLHJvmReactiveLock implements StatefulReactiveLock {
                                     clhNode.lockAt = currentTimeMillis;
                                     lockAt.getAndSet(currentTimeMillis);
                                     isInProgress.getAndSet(true);
+                                    currentLockId.getAndSet(clhNode.nodeId);
                                 }
                                 return lockSuccess;
                             })
                             .defaultIfEmpty(true)
-                            .doOnNext(lockResult -> log.info("[Mono Execution]Try lock once,LockResult:{}", lockResult))
+                            .doOnNext(lockResult -> log.info("[Mono Execution]Try lock [{}],LockResult:{}", clhNode.nodeId, lockResult))
                             .flatMap(lockResultExecution),
                     clhNode -> this.releaseCLHNode(clhNode)
-                            .doOnNext(releaseResult -> log.info("[Mono Execution](Normal Release) ReleaseResult:{}", releaseResult)),
+                            .doOnNext(releaseResult -> log.info("[Mono Execution](Normal Release)[{}],ReleaseResult:{}", clhNode.nodeId, releaseResult)),
                     (clhNode, err) -> this.releaseCLHNode(clhNode)
-                            .doOnNext(releaseResult -> log.info("[Mono Execution](When ERROR Release)ReleaseResult:{}", releaseResult)),
+                            .doOnNext(releaseResult -> log.info("[Mono Execution](When ERROR Release)[{}],ReleaseResult:{}", clhNode.nodeId, releaseResult)),
                     clhNode -> this.releaseCLHNode(clhNode)
-                            .doOnNext(releaseResult -> log.info("[Mono Execution](When AsyncCancel Release),ReleaseResult:{}", releaseResult))
+                            .doOnNext(releaseResult -> log.info("[Mono Execution](When AsyncCancel Release)[{}],ReleaseResult:{}", clhNode.nodeId, releaseResult))
             );
         }
         return Mono.usingWhen(
@@ -119,14 +133,15 @@ public class CLHJvmReactiveLock implements StatefulReactiveLock {
                                     }
                                 })
                         )
-                        .doOnNext(lockResult -> log.info("[Mono Execution]Try lock once,LockResult:{}", lockResult))
+                        .defaultIfEmpty(false)
+                        .doOnNext(lockResult -> log.info("[Mono Execution]Try lock [{}],LockResult:{}", clhNode.nodeId, lockResult))
                         .flatMap(lockResultExecution),
                 clhNode -> this.releaseCLHNode(clhNode)
-                        .doOnNext(releaseResult -> log.info("[Mono Execution](Normal Release) ReleaseResult:{}", releaseResult)),
+                        .doOnNext(releaseResult -> log.info("[Mono Execution](Normal Release)[{}],ReleaseResult:{}", clhNode.nodeId, releaseResult)),
                 (clhNode, err) -> this.releaseCLHNode(clhNode)
-                        .doOnNext(releaseResult -> log.info("[Mono Execution](When ERROR Release)ReleaseResult:{}", releaseResult)),
+                        .doOnNext(releaseResult -> log.info("[Mono Execution](When ERROR Release)[{}],ReleaseResult:{}", clhNode.nodeId, releaseResult)),
                 clhNode -> this.releaseCLHNode(clhNode)
-                        .doOnNext(releaseResult -> log.info("[Mono Execution](When AsyncCancel Release),ReleaseResult:{}", releaseResult))
+                        .doOnNext(releaseResult -> log.info("[Mono Execution](When AsyncCancel Release)[{}],ReleaseResult:{}", clhNode.nodeId, releaseResult))
         );
     }
 
@@ -150,18 +165,19 @@ public class CLHJvmReactiveLock implements StatefulReactiveLock {
                                     clhNode.lockAt = currentTimeMillis;
                                     lockAt.getAndSet(currentTimeMillis);
                                     isInProgress.getAndSet(true);
+                                    currentLockId.getAndSet(clhNode.nodeId);
                                 }
                                 return lockSuccess;
                             })
                             .defaultIfEmpty(true)
-                            .doOnNext(lockResult -> log.info("[Flux Execution]Try lock once,LockResult:{}", lockResult))
+                            .doOnNext(lockResult -> log.info("[Flux Execution]Try lock [{}],LockResult:{}", clhNode.nodeId, lockResult))
                             .flatMapMany(lockResultExecution),
                     clhNode -> this.releaseCLHNode(clhNode)
-                            .doOnNext(releaseResult -> log.info("[Flux Execution](Normal Release) ReleaseResult:{}", releaseResult)),
+                            .doOnNext(releaseResult -> log.info("[Flux Execution](Normal Release)[{}],ReleaseResult:{}", clhNode.nodeId, releaseResult)),
                     (clhNode, err) -> this.releaseCLHNode(clhNode)
-                            .doOnNext(releaseResult -> log.info("[Flux Execution](When ERROR Release)ReleaseResult:{}", releaseResult)),
+                            .doOnNext(releaseResult -> log.info("[Flux Execution](When ERROR Release)[{}],ReleaseResult:{}", clhNode.nodeId, releaseResult)),
                     clhNode -> this.releaseCLHNode(clhNode)
-                            .doOnNext(releaseResult -> log.info("[Flux Execution](When AsyncCancel Release),ReleaseResult:{}", releaseResult))
+                            .doOnNext(releaseResult -> log.info("[Flux Execution](When AsyncCancel Release)[{}],ReleaseResult:{}", clhNode.nodeId, releaseResult))
             );
         }
         return Flux.usingWhen(
@@ -174,6 +190,7 @@ public class CLHJvmReactiveLock implements StatefulReactiveLock {
                                 clhNode.lockAt = currentTimeMillis;
                                 lockAt.getAndSet(currentTimeMillis);
                                 isInProgress.getAndSet(true);
+                                currentLockId.getAndSet(clhNode.nodeId);
                             }
                             return lockSuccess;
                         })
@@ -188,14 +205,15 @@ public class CLHJvmReactiveLock implements StatefulReactiveLock {
                                     }
                                 })
                         )
-                        .doOnNext(lockResult -> log.info("[Flux Execution]Try lock,LockResult:{}", lockResult))
+                        .defaultIfEmpty(false)
+                        .doOnNext(lockResult -> log.info("[Flux Execution]Try lock[{}],LockResult:{}", clhNode.nodeId, lockResult))
                         .flatMapMany(lockResultExecution),
                 clhNode -> this.releaseCLHNode(clhNode)
-                        .doOnNext(releaseResult -> log.info("[Flux Execution](Normal Release) ReleaseResult:{}", releaseResult)),
+                        .doOnNext(releaseResult -> log.info("[Flux Execution](Normal Release)[{}],ReleaseResult:{}", clhNode.nodeId, releaseResult)),
                 (clhNode, err) -> this.releaseCLHNode(clhNode)
-                        .doOnNext(releaseResult -> log.info("[Flux Execution](When ERROR Release)ReleaseResult:{}", releaseResult)),
+                        .doOnNext(releaseResult -> log.info("[Flux Execution](When ERROR Release)[{}],ReleaseResult:{}", clhNode.nodeId, releaseResult)),
                 clhNode -> this.releaseCLHNode(clhNode)
-                        .doOnNext(releaseResult -> log.info("[Flux Execution](When AsyncCancel Release),ReleaseResult:{}", releaseResult))
+                        .doOnNext(releaseResult -> log.info("[Flux Execution](When AsyncCancel Release)[{}],ReleaseResult:{}", clhNode.nodeId, releaseResult))
         );
     }
 
@@ -206,6 +224,9 @@ public class CLHJvmReactiveLock implements StatefulReactiveLock {
      * @return release result
      */
     private Mono<Boolean> releaseCLHNode(CLHNode clhNode) {
+        if (!clhNode.isLocked) {
+            return Mono.just(true);
+        }
         boolean releaseResult = false;
         if (!UPDATER.compareAndSet(this, clhNode, null)) {
             releaseResult = true;
@@ -221,8 +242,9 @@ public class CLHJvmReactiveLock implements StatefulReactiveLock {
      */
     @ToString
     private static class CLHNode {
+        private final String nodeId = UUID.randomUUID().toString();
         private volatile boolean isLocked = true;
         private volatile long lockAt;
     }
-    
+
 }

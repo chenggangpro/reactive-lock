@@ -33,6 +33,14 @@ public class DefaultReactiveLock extends AbstractReactiveLock {
         return defaultJvmReactiveLockExecutor.isInProcess();
     }
 
+    @Override
+    public String toString() {
+        return "DefaultReactiveLock{" +
+                "lockSignal=" + lockSignal +
+                ",lockedAt=" + defaultJvmReactiveLockExecutor.lockAt() +
+                '}';
+    }
+
     private class DefaultJvmReactiveLockExecutor implements ReactiveLockExecutor {
 
         private volatile long lockedAt;

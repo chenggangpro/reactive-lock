@@ -19,6 +19,8 @@ import reactor.test.StepVerifier;
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static pro.chenggang.project.reactive.lock.tests.ProcessFunctions.FAILED;
+import static pro.chenggang.project.reactive.lock.tests.ProcessFunctions.OK;
 
 /**
  * @author Gang Cheng
@@ -26,11 +28,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @ContextConfiguration(classes = ReactiveLockApplication.class)
-public class RedisReactiveLockTests {
+public class MCSJvmReactiveLockTests {
 
-    @Qualifier("redisReactiveLockRegistry")
+    @Qualifier("mcsReactiveLockRegistry")
     @Autowired
-    private ReactiveLockRegistry redisReactiveLockRegistry;
+    private ReactiveLockRegistry mcsReactiveLockRegistry;
 
     @BeforeTestClass
     public void init(){
@@ -40,19 +42,18 @@ public class RedisReactiveLockTests {
 
     @Test
     public void testLoadConfiguration() throws Exception {
-        assertNotNull(redisReactiveLockRegistry);
+        assertNotNull(mcsReactiveLockRegistry);
     }
 
     @Test
     public void testAcquireOnce() throws Exception {
         ProcessFunctions processFunctions = new ProcessFunctions();
-        String lockKey = "LOCK_ONCE";
         Flux<String> flux = Flux.range(0, 5)
-                .flatMap(value -> this.redisReactiveLockRegistry.obtain(lockKey)
+                .flatMap(value -> this.mcsReactiveLockRegistry.obtain()
                         .tryLockThenExecute(
                                 lockResult -> {
                                     if(!lockResult){
-                                        return Mono.just(ProcessFunctions.FAILED);
+                                        return Mono.just(FAILED);
                                     }
                                     return processFunctions.processFunction();
                                 }
@@ -60,11 +61,11 @@ public class RedisReactiveLockTests {
                 )
                 .doOnNext(System.out::println);
         StepVerifier.create(flux)
-                .expectNext(ProcessFunctions.OK)
-                .expectNext(ProcessFunctions.OK)
-                .expectNext(ProcessFunctions.OK)
-                .expectNext(ProcessFunctions.OK)
-                .expectNext(ProcessFunctions.OK)
+                .expectNext(OK)
+                .expectNext(OK)
+                .expectNext(OK)
+                .expectNext(OK)
+                .expectNext(OK)
                 .verifyComplete();
 
     }
@@ -72,50 +73,48 @@ public class RedisReactiveLockTests {
     @Test
     public void testAcquireDurationWithinExpireTime() throws Exception {
         //default lock expire is 10S
-        String lockKey = "LOCK_WITHIN_EXPIRE_TIME";
         ProcessFunctions processFunctions = new ProcessFunctions();
         Flux<String> flux = Flux.range(0, 3)
-                .flatMap(value -> this.redisReactiveLockRegistry.obtain(lockKey)
+                .flatMap(value -> this.mcsReactiveLockRegistry.obtain()
                         .lockThenExecute(
                                 Duration.ofSeconds(10),
                                 lockResult -> {
                                     if(!lockResult){
-                                        return Mono.just(ProcessFunctions.FAILED);
+                                        return Mono.just(FAILED);
                                     }
                                     return processFunctions.processDelayFunction(Duration.ofSeconds(2));
                                 }
                         )
                 );
         StepVerifier.create(flux)
-                .expectNext(ProcessFunctions.OK)
-                .expectNext(ProcessFunctions.OK)
-                .expectNext(ProcessFunctions.OK)
+                .expectNext(OK)
+                .expectNext(OK)
+                .expectNext(OK)
                 .verifyComplete();
 
     }
 
     @Test
     public void testAcquireDurationOutOfExpireTime() throws Exception {
-        String lockKey = "LOCK_OUT_OF_EXPIRE_TIME";
         ProcessFunctions processFunctions = new ProcessFunctions();
         Flux<String> flux = Flux.range(0, 3)
                 .subscribeOn(Schedulers.parallel())
-                .flatMap(value -> this.redisReactiveLockRegistry.obtain(lockKey)
+                .flatMap(value -> this.mcsReactiveLockRegistry.obtain()
                         .lockThenExecute(
                                 Duration.ofSeconds(3),
                                 lockResult -> {
                                     if (!lockResult) {
                                         System.out.println("Lock Error");
-                                        return Mono.just(ProcessFunctions.FAILED);
+                                        return Mono.just(FAILED);
                                     }
                                     return processFunctions.processDelayFunction(Duration.ofSeconds(2));
                                 }
                         )
                 );
         StepVerifier.create(flux)
-                .expectNext(ProcessFunctions.OK)
-                .expectNext(ProcessFunctions.FAILED)
-                .expectNext(ProcessFunctions.OK)
+                .expectNext(OK)
+                .expectNext(FAILED)
+                .expectNext(OK)
                 .verifyComplete();
     }
 

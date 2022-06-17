@@ -67,7 +67,7 @@ public abstract class AbstractAutoCleanupReactiveLockRegistry implements Reactiv
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        log.debug("Initialize Auto Remove Unused Lock Execution");
+        log.debug("Initialize Auto Remove Unused Lock Execution :{}",this.getClass().getSimpleName());
         Flux.interval(expireEvictIdle, scheduler)
                 .flatMap(value -> {
                     long now = System.currentTimeMillis();
@@ -93,7 +93,7 @@ public abstract class AbstractAutoCleanupReactiveLockRegistry implements Reactiv
     @Override
     public void destroy() throws Exception {
         if (!this.scheduler.isDisposed()) {
-            log.debug("Shutdown Auto Remove Unused Lock Execution");
+            log.debug("Shutdown Auto Remove Unused Lock Execution :{}",this.getClass().getSimpleName());
             this.scheduler.dispose();
         }
     }
