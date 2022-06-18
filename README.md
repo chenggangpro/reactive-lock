@@ -3,7 +3,7 @@ Reactive Lock Demo
 
 ### Use Case
 
-* 1 . Make Sure Use Spring Boot Starter Dependency 
+* 1 . Make Sure Use Spring Boot Starter Dependency if using `redis-reactive-lock`
 
 ```xml
 <dependency>
@@ -17,21 +17,21 @@ Reactive Lock Demo
 
 ```yaml
 lock:
-  redis:
-    reactive:
-      expire-after: 10s
-      expire-evict-idle: 1s
-      reactive-lock-type:
-        - DEFAULT   # default
-        - REDIS    # redis
-        - CLH     # jvm lock using CLH algorithm
-        - MCS     # jvm lock using MCS algorithm
+  reactive:
+    expire-after: 10s
+    expire-evict-idle: 1s
+    reactive-lock-type:
+      - DEFAULT   # default using simple spin lock
+      - REDIS    # redis
+      - CLH     # jvm lock using CLH algorithm
+      - MCS     # jvm lock using MCS algorithm
 ```
 
 * 3 . Autowired By Spring
   * `ReactiveLockRegistry defaultReactiveLockRegistry` 
   * `ReactiveLockRegistry redisReactiveLockRegistry` 
   * `ReactiveLockRegistry clhReactiveLockRegistry`
+  * `ReactiveLockRegistry mcsReactiveLockRegistry`
 
 * 4 . Use `ReactiveLockRegistry` With Your Reactive Application
 
