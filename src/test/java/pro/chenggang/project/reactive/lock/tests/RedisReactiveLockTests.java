@@ -34,6 +34,7 @@ public class RedisReactiveLockTests {
 
     @BeforeTestClass
     public void init(){
+        System.setProperty("io.netty.leakDetection.level","PARANOID");
         Hooks.onOperatorDebug();
         BlockHound.install();
     }
@@ -100,7 +101,7 @@ public class RedisReactiveLockTests {
         //default lock expire is 10S
         String lockKey = "LOCK_WITHIN_EXPIRE_TIME";
         ProcessFunctions processFunctions = new ProcessFunctions();
-        Flux<String> flux = Flux.range(0, 3)
+        Flux<String> flux = Flux.range(0, 10000)
                 .flatMap(value -> this.redisReactiveLockRegistry.obtain(lockKey)
                         .lockThenExecute(
                                 Duration.ofSeconds(10),
@@ -112,11 +113,7 @@ public class RedisReactiveLockTests {
                                 }
                         )
                 );
-        StepVerifier.create(flux)
-                .expectNext(ProcessFunctions.OK)
-                .expectNext(ProcessFunctions.OK)
-                .expectNext(ProcessFunctions.OK)
-                .verifyComplete();
+        flux.blockLast();
 
     }
 

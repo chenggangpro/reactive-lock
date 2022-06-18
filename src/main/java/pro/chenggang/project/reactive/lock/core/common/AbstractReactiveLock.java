@@ -5,7 +5,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import pro.chenggang.project.reactive.lock.core.ReactiveLockExecutor;
 import pro.chenggang.project.reactive.lock.core.StatefulReactiveLock;
-import pro.chenggang.project.reactive.lock.util.IdUtil;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.retry.Repeat;
@@ -13,6 +12,7 @@ import reactor.util.context.Context;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Function;
 
 /**
@@ -57,7 +57,7 @@ public abstract class AbstractReactiveLock implements StatefulReactiveLock {
      * @return the new context
      */
     private Context initializeContext(Context context){
-        return context.put(REACTIVE_LOCK_CONTEXT_ID_KEY, REACTIVE_LOCK_CONTEXT_VALUE_PREFIX + IdUtil.getInstance().generateId());
+        return context.put(REACTIVE_LOCK_CONTEXT_ID_KEY, REACTIVE_LOCK_CONTEXT_VALUE_PREFIX + UUID.randomUUID());
     }
 
     /**

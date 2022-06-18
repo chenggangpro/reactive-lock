@@ -9,6 +9,8 @@ import org.springframework.data.redis.connection.lettuce.LettuceClientConfigurat
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
 
+import java.time.Duration;
+
 /**
  * Redis Connection Factory Initialization
  * @author Gang Cheng
@@ -28,10 +30,10 @@ public class RedisConnectionFactoryInitialization {
     private GenericObjectPoolConfig cacheRedisPoolConfig() {
         GenericObjectPoolConfig config = new GenericObjectPoolConfig();
         config.setMaxTotal(1000);
-        config.setMaxIdle(300);
-        config.setMinIdle(100);
-        config.setTimeBetweenEvictionRunsMillis(5000);
-        config.setMaxWaitMillis(5000);
+        config.setMaxIdle(5000);
+        config.setMinIdle(1000);
+        config.setTimeBetweenEvictionRuns(Duration.ofMinutes(1));
+        config.setMaxWait(Duration.ofSeconds(5));
         return config;
     }
 

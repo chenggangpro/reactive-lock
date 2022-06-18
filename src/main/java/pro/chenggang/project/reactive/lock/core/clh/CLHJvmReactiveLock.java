@@ -5,13 +5,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import pro.chenggang.project.reactive.lock.core.StatefulReactiveLock;
-import pro.chenggang.project.reactive.lock.util.IdUtil;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.retry.Repeat;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -242,7 +242,7 @@ public class CLHJvmReactiveLock implements StatefulReactiveLock {
      */
     @ToString
     private static class CLHNode {
-        private final String nodeId = IdUtil.getInstance().generateId();
+        private final String nodeId = UUID.randomUUID().toString();
         private volatile boolean isLocked = true;
         private volatile long lockAt;
     }

@@ -163,29 +163,18 @@ public class RedisReactiveLock extends AbstractReactiveLock {
                                             .filter(isContextInProcess -> isContextInProcess)
                                             .flatMap(isContextInProcess -> this.isLockInProcess()
                                                     .filter(isLockInProcess -> isLockInProcess)
-                                                    .flatMap(isLockInProcess ->  Mono
-                                                            .zip(
-                                                                    RedisReactiveLock.this.reactiveStringRedisTemplate.unlink(this.lockKey),
-                                                                    RedisReactiveLock.this.reactiveStringRedisTemplate.unlink(contextId)
-                                                            )
-                                                            .map(tuple -> tuple.getT1() + tuple.getT2())
-                                                            .doOnError(throwable -> {
-                                                                RedisReactiveLock.this.unlinkAvailable = false;
-                                                                if (log.isDebugEnabled()) {
-                                                                    log.debug("The UNLINK command has failed (not supported on the Redis server?); " +
-                                                                            "falling back to the regular DELETE command", throwable);
-                                                                } else {
-                                                                    log.warn("The UNLINK command has failed (not supported on the Redis server?); " +
-                                                                            "falling back to the regular DELETE command: " + throwable.getMessage());
-                                                                }
-                                                            })
-                                                            .map(unlinkResult -> unlinkResult > 0)
-                                                            .onErrorResume(throwable -> Mono
-                                                                    .zip(
-                                                                            RedisReactiveLock.this.reactiveStringRedisTemplate.unlink(this.lockKey),
-                                                                            RedisReactiveLock.this.reactiveStringRedisTemplate.unlink(contextId)
-                                                                    )
-                                                                    .map(tuple -> tuple.getT1() + tuple.getT2())
+                                                    .flatMap(isLockInProcess ->  RedisReactiveLock.this.reactiveStringRedisTemplate.unlink(this.lockKey)
+                                                            .flatMap(unlinkKeyResult -> RedisReactiveLock.this.reactiveStringRedisTemplate.unlink(contextId)
+                                                                    .doOnError(throwable -> {
+                                                                        RedisReactiveLock.this.unlinkAvailable = false;
+                                                                        if (log.isDebugEnabled()) {
+                                                                            log.debug("The UNLINK command has failed (not supported on the Redis server?); " +
+                                                                                    "falling back to the regular DELETE command", throwable);
+                                                                        } else {
+                                                                            log.warn("The UNLINK command has failed (not supported on the Redis server?); " +
+                                                                                    "falling back to the regular DELETE command: " + throwable.getMessage());
+                                                                        }
+                                                                    })
                                                                     .map(unlinkResult -> unlinkResult > 0)
                                                             )
                                                     )
@@ -195,6 +184,10 @@ public class RedisReactiveLock extends AbstractReactiveLock {
                                                         return Mono.just(false);
                                                     }))
                                             )
+                                            .onErrorResume(throwable -> RedisReactiveLock.this.reactiveStringRedisTemplate.unlink(this.lockKey)
+                                                    .flatMap(result -> RedisReactiveLock.this.reactiveStringRedisTemplate.unlink(contextId))
+                                                    .map(unlinkResult -> unlinkResult > 0)
+                                            )
                                             .switchIfEmpty(Mono.just(true))
                                     )
                                     //if unlink is not supported
@@ -202,27 +195,20 @@ public class RedisReactiveLock extends AbstractReactiveLock {
                                                     .filter(isContextInProcess -> isContextInProcess)
                                                     .flatMap(isContextInProcess -> this.isLockInProcess()
                                                             .filter(isLockInProcess -> isLockInProcess)
-                                                            .flatMap(isLockInProcess ->  Mono
-                                                                    .zip(
-                                                                            RedisReactiveLock.this.reactiveStringRedisTemplate.delete(this.lockKey),
-                                                                            RedisReactiveLock.this.reactiveStringRedisTemplate.delete(contextId)
-                                                                    )
-                                                                    .map(tuple -> tuple.getT1() + tuple.getT2())
-                                                                    .map(unlinkResult -> unlinkResult > 0)
-                                                                    .onErrorResume(throwable -> Mono
-                                                                            .zip(
-                                                                                    RedisReactiveLock.this.reactiveStringRedisTemplate.delete(this.lockKey),
-                                                                                    RedisReactiveLock.this.reactiveStringRedisTemplate.delete(contextId)
-                                                                            )
-                                                                            .map(tuple -> tuple.getT1() + tuple.getT2())
-                                                                            .map(unlinkResult -> unlinkResult > 0)
-                                                                    )
+                                                            .flatMap(isLockInProcess ->  RedisReactiveLock.this.reactiveStringRedisTemplate.delete(this.lockKey)
+                                                                    .flatMap(deleteResult -> RedisReactiveLock.this.reactiveStringRedisTemplate.delete(contextId)
+                                                                            .map(unlinkResult -> unlinkResult > 0))
+
                                                             )
                                                             .switchIfEmpty(Mono.defer(() -> {
                                                                 log.warn("Lock({}) was released in the store due to expiration." +
                                                                         "The integrity of data protected by this lock may have been compromised.", this.lockKey);
                                                                 return Mono.just(false);
                                                             }))
+                                                    )
+                                                    .onErrorResume(throwable -> RedisReactiveLock.this.reactiveStringRedisTemplate.delete(this.lockKey)
+                                                            .flatMap(deleteResult -> RedisReactiveLock.this.reactiveStringRedisTemplate.delete(contextId)
+                                                                    .map(unlinkResult -> unlinkResult > 0))
                                                     )
                                                     .switchIfEmpty(Mono.just(true))
                                             )
