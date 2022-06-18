@@ -95,11 +95,7 @@ public class RedisReactiveLock extends AbstractReactiveLock {
 
         @Override
         public Mono<Boolean> isInProcess() {
-            return Mono.zip(isLockInProcess(),
-                            isContextInProcess()
-                    )
-                    .map(tuple -> tuple.getT1() && tuple.getT2());
-
+            return this.isLockInProcess();
         }
 
         /**
