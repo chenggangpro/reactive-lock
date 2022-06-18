@@ -1,4 +1,4 @@
-package pro.chenggang.project.reactive.lock.core.defaults;
+package pro.chenggang.project.reactive.lock.core.common;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
@@ -66,7 +66,7 @@ public abstract class AbstractAutoCleanupReactiveLockRegistry implements Reactiv
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         String classSimpleName = this.getClass().getSimpleName();
         log.debug("Initialize Auto Remove Unused Lock Execution :{}", classSimpleName);
         Flux.interval(expireEvictIdle, scheduler)
@@ -94,7 +94,7 @@ public abstract class AbstractAutoCleanupReactiveLockRegistry implements Reactiv
     }
 
     @Override
-    public void destroy() throws Exception {
+    public void destroy() {
         if (!this.scheduler.isDisposed()) {
             log.debug("Shutdown Auto Remove Unused Lock Execution :{}", this.getClass().getSimpleName());
             this.scheduler.dispose();

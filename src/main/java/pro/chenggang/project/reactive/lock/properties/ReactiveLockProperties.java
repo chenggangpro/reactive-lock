@@ -44,15 +44,15 @@ public class ReactiveLockProperties implements InitializingBean {
     private Duration expireEvictIdle = Duration.ofMinutes(1);
 
     /**
-     * reactive lock type
+     * lock type
      */
-    private Set<ReactiveLockType> reactiveLockType = new HashSet<>();
+    private Set<ReactiveLockType> type = new HashSet<>();
 
 
     @Override
-    public void afterPropertiesSet() throws Exception {
-        if(reactiveLockType.isEmpty()){
-            reactiveLockType.add(ReactiveLockType.DEFAULT);
+    public void afterPropertiesSet() {
+        if(type.isEmpty()){
+            type.add(ReactiveLockType.DEFAULT);
         }
     }
 

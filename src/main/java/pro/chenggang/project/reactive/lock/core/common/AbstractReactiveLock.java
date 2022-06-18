@@ -1,13 +1,15 @@
-package pro.chenggang.project.reactive.lock.core.defaults;
+package pro.chenggang.project.reactive.lock.core.common;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import pro.chenggang.project.reactive.lock.core.ReactiveLockExecutor;
 import pro.chenggang.project.reactive.lock.core.StatefulReactiveLock;
+import pro.chenggang.project.reactive.lock.util.IdUtil;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.retry.Repeat;
+import reactor.util.context.Context;
 
 import java.time.Duration;
 import java.util.Objects;
@@ -22,24 +24,40 @@ import java.util.function.Function;
 @Slf4j
 public abstract class AbstractReactiveLock implements StatefulReactiveLock {
 
+    public static final String REACTIVE_LOCK_CONTEXT_ID_KEY = "@@REACTIVE_LOCK_CONTEXT_ID@@";
+    public static final String REACTIVE_LOCK_CONTEXT_VALUE_PREFIX = "REACTIVE_LOCK_CONTEXT:";
+
     @Override
     public <T> Mono<T> tryLockThenExecute(@NotNull Function<Boolean, Mono<T>> lockResultExecution) {
-        return this.executeWithMono(null, lockResultExecution);
+        return this.executeWithMono(null, lockResultExecution)
+                .contextWrite(this::initializeContext);
     }
 
     @Override
     public <T> Flux<T> tryLockThenExecuteMany(@NotNull Function<Boolean, Flux<T>> lockResultExecution) {
-        return this.executeWithFlux(null, lockResultExecution);
+        return this.executeWithFlux(null, lockResultExecution)
+                .contextWrite(this::initializeContext);
     }
 
     @Override
     public <T> Mono<T> lockThenExecute(@NotNull Duration duration, @NotNull Function<Boolean, Mono<T>> lockResultExecution) {
-        return this.executeWithMono(duration, lockResultExecution);
+        return this.executeWithMono(duration, lockResultExecution)
+                .contextWrite(this::initializeContext);
     }
 
     @Override
     public <T> Flux<T> lockThenExecuteMany(@NotNull Duration duration, @NotNull Function<Boolean, Flux<T>> lockResultExecution) {
-        return this.executeWithFlux(duration, lockResultExecution);
+        return this.executeWithFlux(duration, lockResultExecution)
+                .contextWrite(this::initializeContext);
+    }
+
+    /**
+     * initialize context
+     * @param context the context
+     * @return the new context
+     */
+    private Context initializeContext(Context context){
+        return context.put(REACTIVE_LOCK_CONTEXT_ID_KEY, REACTIVE_LOCK_CONTEXT_VALUE_PREFIX + IdUtil.getInstance().generateId());
     }
 
     /**

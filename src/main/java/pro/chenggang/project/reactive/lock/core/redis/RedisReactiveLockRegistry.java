@@ -1,7 +1,8 @@
-package pro.chenggang.project.reactive.lock.core.defaults;
+package pro.chenggang.project.reactive.lock.core.redis;
 
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import pro.chenggang.project.reactive.lock.core.StatefulReactiveLock;
+import pro.chenggang.project.reactive.lock.core.common.AbstractAutoCleanupReactiveLockRegistry;
 
 import java.time.Duration;
 import java.util.Objects;

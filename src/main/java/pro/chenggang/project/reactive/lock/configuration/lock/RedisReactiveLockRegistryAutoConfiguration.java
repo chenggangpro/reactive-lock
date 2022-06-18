@@ -8,9 +8,8 @@ import org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfig
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
-import pro.chenggang.project.reactive.lock.configuration.ReactiveLockAutoConfiguration;
 import pro.chenggang.project.reactive.lock.core.ReactiveLockRegistry;
-import pro.chenggang.project.reactive.lock.core.defaults.RedisReactiveLockRegistry;
+import pro.chenggang.project.reactive.lock.core.redis.RedisReactiveLockRegistry;
 import pro.chenggang.project.reactive.lock.properties.ReactiveLockProperties;
 import reactor.core.publisher.Flux;
 
@@ -23,8 +22,8 @@ import reactor.core.publisher.Flux;
  */
 @Slf4j
 @Configuration(proxyBeanMethods = false)
-@AutoConfigureAfter({RedisReactiveAutoConfiguration.class, ReactiveLockAutoConfiguration.class})
-@ConditionalOnClass({ReactiveLockRegistry.class, RedisReactiveAutoConfiguration.class, ReactiveRedisConnectionFactory.class, Flux.class})
+@AutoConfigureAfter(RedisReactiveAutoConfiguration.class)
+@ConditionalOnClass({RedisReactiveLockRegistry.class, ReactiveRedisConnectionFactory.class, Flux.class})
 public class RedisReactiveLockRegistryAutoConfiguration {
 
     /**

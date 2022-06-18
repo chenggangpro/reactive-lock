@@ -34,7 +34,7 @@ public class ReactiveLockAutoConfigurationImportSelector implements ImportSelect
                 .filter(value -> Map.class.isAssignableFrom(value.getClass()))
                 .map(Map.class::cast)
                 .flatMap(map -> (Stream<Map.Entry<String, Object>>) map.entrySet().stream())
-                .filter(entry -> entry.getKey().startsWith(LOCK_PROPERTIES_PREFIX + ".reactive-lock-type"))
+                .filter(entry -> entry.getKey().startsWith(LOCK_PROPERTIES_PREFIX + ".type"))
                 .map(Map.Entry::getKey)
                 .map(configurableEnvironment::getProperty)
                 .map(String.class::cast)
@@ -49,6 +49,7 @@ public class ReactiveLockAutoConfigurationImportSelector implements ImportSelect
                     return null;
                 })
                 .filter(Objects::nonNull)
+                .filter(reactiveLockType -> !ReactiveLockType.REDIS.equals(reactiveLockType))
                 .map(ReactiveLockType::getRegistryAutoConfigurationClass)
                 .map(Class::getName)
                 .toArray(String[]::new);

@@ -21,7 +21,7 @@ import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.test.context.event.annotation.BeforeTestClass;
 import pro.chenggang.project.reactive.lock.core.ReactiveLockRegistry;
-import pro.chenggang.project.reactive.lock.core.defaults.RedisReactiveLockRegistry;
+import pro.chenggang.project.reactive.lock.core.redis.RedisReactiveLockRegistry;
 import reactor.blockhound.BlockHound;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;

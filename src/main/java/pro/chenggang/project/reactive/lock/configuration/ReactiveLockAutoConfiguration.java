@@ -23,7 +23,7 @@ import static pro.chenggang.project.reactive.lock.properties.ReactiveLockPropert
  * @date 2021-03-14.
  */
 @Slf4j
-@Import(ReactiveLockAutoConfigurationImportSelector.class)
+@Import({ReactiveLockAutoConfigurationImportSelector.class})
 @Configuration(proxyBeanMethods = false)
 @AutoConfigureAfter(RedisReactiveAutoConfiguration.class)
 @ConditionalOnClass({ReactiveLockRegistry.class, RedisReactiveAutoConfiguration.class, ReactiveRedisConnectionFactory.class, Flux.class})

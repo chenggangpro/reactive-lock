@@ -48,7 +48,33 @@ public class RedisReactiveLockTests {
         ProcessFunctions processFunctions = new ProcessFunctions();
         String lockKey = "LOCK_ONCE";
         Flux<String> flux = Flux.range(0, 5)
-                .flatMap(value -> this.redisReactiveLockRegistry.obtain(lockKey)
+                .flatMapSequential(value -> this.redisReactiveLockRegistry.obtain(lockKey)
+                        .tryLockThenExecute(
+                                lockResult -> {
+                                    if(!lockResult){
+                                        return Mono.just(ProcessFunctions.FAILED);
+                                    }
+                                    return processFunctions.processFunction();
+                                }
+                        )
+                )
+                .doOnNext(System.out::println);
+        StepVerifier.create(flux)
+                .expectNext(ProcessFunctions.OK)
+                .expectNext(ProcessFunctions.FAILED)
+                .expectNext(ProcessFunctions.FAILED)
+                .expectNext(ProcessFunctions.FAILED)
+                .expectNext(ProcessFunctions.FAILED)
+                .verifyComplete();
+
+    }
+
+    @Test
+    public void testAcquireOnceOrdered() throws Exception {
+        ProcessFunctions processFunctions = new ProcessFunctions();
+        String lockKey = "LOCK_ONCE";
+        Flux<String> flux = Flux.range(0, 5)
+                .concatMap(value -> this.redisReactiveLockRegistry.obtain(lockKey)
                         .tryLockThenExecute(
                                 lockResult -> {
                                     if(!lockResult){

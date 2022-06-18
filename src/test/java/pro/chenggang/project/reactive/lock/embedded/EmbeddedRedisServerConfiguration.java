@@ -1,7 +1,6 @@
 package pro.chenggang.project.reactive.lock.embedded;
 
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import redis.embedded.RedisServer;
 
 /**
@@ -9,7 +8,7 @@ import redis.embedded.RedisServer;
  * @author Gang Cheng
  * @date 2021-03-14.
  */
-@Configuration
+//@Configuration
 public class EmbeddedRedisServerConfiguration {
 
     @Bean(initMethod = "start",destroyMethod = "stop")

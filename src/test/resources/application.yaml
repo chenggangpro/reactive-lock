@@ -16,7 +16,7 @@ lock:
   reactive:
     expire-after: PT1M
     expire-evict-idle: PT10S
-    reactive-lock-type:
+    type:
       - DEFAULT
       - REDIS
       - CLH

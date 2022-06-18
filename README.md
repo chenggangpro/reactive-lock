@@ -20,7 +20,7 @@ lock:
   reactive:
     expire-after: 10s
     expire-evict-idle: 1s
-    reactive-lock-type:
+    type:
       - DEFAULT   # default using simple spin lock
       - REDIS    # redis
       - CLH     # jvm lock using CLH algorithm

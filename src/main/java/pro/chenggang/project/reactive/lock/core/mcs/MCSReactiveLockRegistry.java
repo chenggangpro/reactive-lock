@@ -1,7 +1,7 @@
 package pro.chenggang.project.reactive.lock.core.mcs;
 
 import pro.chenggang.project.reactive.lock.core.StatefulReactiveLock;
-import pro.chenggang.project.reactive.lock.core.defaults.AbstractAutoCleanupReactiveLockRegistry;
+import pro.chenggang.project.reactive.lock.core.common.AbstractAutoCleanupReactiveLockRegistry;
 
 import java.time.Duration;
 
