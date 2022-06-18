@@ -10,12 +10,14 @@ import org.springframework.util.StringUtils;
 import pro.chenggang.project.reactive.lock.core.ReactiveLockExecutor;
 import pro.chenggang.project.reactive.lock.core.common.AbstractReactiveLock;
 import reactor.core.publisher.Mono;
+import reactor.util.context.ContextView;
 
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The Redis reactive lock.
@@ -116,105 +118,125 @@ public class RedisReactiveLock extends AbstractReactiveLock {
          * @return if ture when in process
          */
         private Mono<Boolean> isContextInProcess() {
-            return Mono.deferContextual(contextView -> Mono
-                    .justOrEmpty(contextView.getOrEmpty(REACTIVE_LOCK_CONTEXT_ID_KEY))
-                    .ofType(String.class)
-                    .switchIfEmpty(Mono.error(new IllegalStateException("Could not found redis lock context id when check whether a lock  is in process")))
-                    .flatMap(contextId -> RedisReactiveLock.this.reactiveStringRedisTemplate.opsForValue()
-                            .get(contextId)
-                            .filter(StringUtils::hasText)
-                            .map("true"::equals)
-                            .defaultIfEmpty(false)
-                    )
-            );
+            return Mono.deferContextual(contextView -> {
+                Optional<String> optionalContextId = getOptionalContextId(contextView);
+                if (optionalContextId.isEmpty()) {
+                    return Mono.error(new IllegalStateException("Could not found redis lock context id when release a lock"));
+                }
+                String contextId = optionalContextId.get();
+                return RedisReactiveLock.this.reactiveStringRedisTemplate.opsForValue()
+                        .get(contextId)
+                        .filter(StringUtils::hasText)
+                        .map("true"::equals)
+                        .defaultIfEmpty(false);
+            });
         }
 
         @Override
         public Mono<Boolean> obtain() {
-            return Mono.deferContextual(contextView -> Mono
-                    .justOrEmpty(contextView.getOrEmpty(REACTIVE_LOCK_CONTEXT_ID_KEY))
-                    .ofType(String.class)
-                    .switchIfEmpty(Mono.error(new IllegalStateException("Could not found redis lock context id when obtain a lock")))
-                    .flatMap(contextId -> Mono
-                            .from(RedisReactiveLock.this.reactiveStringRedisTemplate.execute(RedisReactiveLock.this.obtainLockScript,
-                                    Collections.singletonList(this.lockKey),
-                                    List.of(contextId, String.valueOf(this.expireAfter)))
-                            )
-                            .map(success -> {
-                                boolean result = Boolean.TRUE.equals(success);
-                                if (result) {
-                                    this.lockedAt = System.currentTimeMillis();
-                                }
-                                return result;
-                            })
-                    ));
+            return Mono.deferContextual(contextView -> {
+                Optional<String> optionalContextId = getOptionalContextId(contextView);
+                if (optionalContextId.isEmpty()) {
+                    return Mono.error(new IllegalStateException("Could not found redis lock context id when release a lock"));
+                }
+                String contextId = optionalContextId.get();
+                return Mono
+                        .from(RedisReactiveLock.this.reactiveStringRedisTemplate.execute(RedisReactiveLock.this.obtainLockScript,
+                                Collections.singletonList(this.lockKey),
+                                List.of(contextId, String.valueOf(this.expireAfter)))
+                        )
+                        .map(success -> {
+                            boolean result = Boolean.TRUE.equals(success);
+                            if (result) {
+                                this.lockedAt = System.currentTimeMillis();
+                            }
+                            return result;
+                        });
+            });
         }
 
         @Override
         public Mono<Boolean> release() {
-            return Mono.deferContextual(contextView -> Mono
-                            .justOrEmpty(contextView.getOrEmpty(REACTIVE_LOCK_CONTEXT_ID_KEY))
-                            .ofType(String.class)
-                            .switchIfEmpty(Mono.error(new IllegalStateException("Could not found redis lock context id when release a lock")))
-                            .flatMap(contextId -> Mono.just(RedisReactiveLock.this.unlinkAvailable)
-                                    //if unlink is supported
-                                    .filter(isUnlinkSupported -> isUnlinkSupported)
-                                    .flatMap(unlink -> this.isContextInProcess()
-                                            .filter(isContextInProcess -> isContextInProcess)
-                                            .flatMap(isContextInProcess -> this.isLockInProcess()
-                                                    .filter(isLockInProcess -> isLockInProcess)
-                                                    .flatMap(isLockInProcess ->  RedisReactiveLock.this.reactiveStringRedisTemplate.unlink(this.lockKey)
-                                                            .flatMap(unlinkKeyResult -> RedisReactiveLock.this.reactiveStringRedisTemplate.unlink(contextId)
-                                                                    .doOnError(throwable -> {
-                                                                        RedisReactiveLock.this.unlinkAvailable = false;
-                                                                        if (log.isDebugEnabled()) {
-                                                                            log.debug("The UNLINK command has failed (not supported on the Redis server?); " +
-                                                                                    "falling back to the regular DELETE command", throwable);
-                                                                        } else {
-                                                                            log.warn("The UNLINK command has failed (not supported on the Redis server?); " +
-                                                                                    "falling back to the regular DELETE command: " + throwable.getMessage());
-                                                                        }
-                                                                    })
-                                                                    .map(unlinkResult -> unlinkResult > 0)
-                                                            )
-                                                    )
-                                                    .switchIfEmpty(Mono.defer(() -> {
-                                                        log.warn("Lock({}) was released in the store due to expiration." +
-                                                                "The integrity of data protected by this lock may have been compromised.", this.lockKey);
-                                                        return Mono.just(false);
-                                                    }))
+            return Mono.deferContextual(contextView -> {
+                Optional<String> optionalContextId = getOptionalContextId(contextView);
+                if (optionalContextId.isEmpty()) {
+                    return Mono.error(new IllegalStateException("Could not found redis lock context id when release a lock"));
+                }
+                String contextId = optionalContextId.get();
+                if (RedisReactiveLock.this.unlinkAvailable) {
+                    return this.isContextInProcess()
+                            .filter(isContextInProcess -> isContextInProcess)
+                            .flatMap(isContextInProcess -> this.isLockInProcess()
+                                    .filter(isLockInProcess -> isLockInProcess)
+                                    .flatMap(isLockInProcess -> Mono
+                                            .zip(
+                                                    RedisReactiveLock.this.reactiveStringRedisTemplate.unlink(this.lockKey),
+                                                    RedisReactiveLock.this.reactiveStringRedisTemplate.unlink(contextId)
                                             )
-                                            .onErrorResume(throwable -> RedisReactiveLock.this.reactiveStringRedisTemplate.unlink(this.lockKey)
-                                                    .flatMap(result -> RedisReactiveLock.this.reactiveStringRedisTemplate.unlink(contextId))
-                                                    .map(unlinkResult -> unlinkResult > 0)
-                                            )
-                                            .switchIfEmpty(Mono.just(true))
+                                            .map(tuple -> tuple.getT1() + tuple.getT2() > 0)
+                                            .doOnError(throwable -> {
+                                                RedisReactiveLock.this.unlinkAvailable = false;
+                                                if (log.isDebugEnabled()) {
+                                                    log.debug("The UNLINK command has failed (not supported on the Redis server?); " +
+                                                            "falling back to the regular DELETE command", throwable);
+                                                } else {
+                                                    log.warn("The UNLINK command has failed (not supported on the Redis server?); " +
+                                                            "falling back to the regular DELETE command: " + throwable.getMessage());
+                                                }
+                                            })
                                     )
-                                    //if unlink is not supported
-                                    .switchIfEmpty(Mono.defer(() -> this.isContextInProcess()
-                                                    .filter(isContextInProcess -> isContextInProcess)
-                                                    .flatMap(isContextInProcess -> this.isLockInProcess()
-                                                            .filter(isLockInProcess -> isLockInProcess)
-                                                            .flatMap(isLockInProcess ->  RedisReactiveLock.this.reactiveStringRedisTemplate.delete(this.lockKey)
-                                                                    .flatMap(deleteResult -> RedisReactiveLock.this.reactiveStringRedisTemplate.delete(contextId)
-                                                                            .map(unlinkResult -> unlinkResult > 0))
+                                    .switchIfEmpty(Mono.defer(() -> {
+                                        log.warn("Lock({}) was released in the store due to expiration." +
+                                                "The integrity of data protected by this lock may have been compromised.", this.lockKey);
+                                        return Mono.just(false);
+                                    }))
+                            )
+                            .onErrorResume(throwable -> Mono
+                                    .zip(
+                                            RedisReactiveLock.this.reactiveStringRedisTemplate.unlink(this.lockKey),
+                                            RedisReactiveLock.this.reactiveStringRedisTemplate.unlink(contextId)
+                                    )
+                                    .map(tuple -> tuple.getT1() + tuple.getT2() > 0)
+                            )
+                            .switchIfEmpty(Mono.just(true));
+                }
+                return this.isContextInProcess()
+                        .filter(isContextInProcess -> isContextInProcess)
+                        .flatMap(isContextInProcess -> this.isLockInProcess()
+                                .filter(isLockInProcess -> isLockInProcess)
+                                .flatMap(isLockInProcess -> Mono
+                                        .zip(
+                                                RedisReactiveLock.this.reactiveStringRedisTemplate.delete(this.lockKey),
+                                                RedisReactiveLock.this.reactiveStringRedisTemplate.delete(contextId)
+                                        )
+                                        .map(tuple -> tuple.getT1() + tuple.getT2() > 0)
+                                )
+                                .switchIfEmpty(Mono.defer(() -> {
+                                    log.warn("Lock({}) was released in the store due to expiration." +
+                                            "The integrity of data protected by this lock may have been compromised.", this.lockKey);
+                                    return Mono.just(false);
+                                }))
+                        )
+                        .onErrorResume(throwable -> Mono
+                                .zip(
+                                        RedisReactiveLock.this.reactiveStringRedisTemplate.delete(this.lockKey),
+                                        RedisReactiveLock.this.reactiveStringRedisTemplate.delete(contextId)
+                                )
+                                .map(tuple -> tuple.getT1() + tuple.getT2() > 0)
+                        )
+                        .switchIfEmpty(Mono.just(true));
+            });
+        }
 
-                                                            )
-                                                            .switchIfEmpty(Mono.defer(() -> {
-                                                                log.warn("Lock({}) was released in the store due to expiration." +
-                                                                        "The integrity of data protected by this lock may have been compromised.", this.lockKey);
-                                                                return Mono.just(false);
-                                                            }))
-                                                    )
-                                                    .onErrorResume(throwable -> RedisReactiveLock.this.reactiveStringRedisTemplate.delete(this.lockKey)
-                                                            .flatMap(deleteResult -> RedisReactiveLock.this.reactiveStringRedisTemplate.delete(contextId)
-                                                                    .map(unlinkResult -> unlinkResult > 0))
-                                                    )
-                                                    .switchIfEmpty(Mono.just(true))
-                                            )
-                                    ))
-                    )
-                    .switchIfEmpty(Mono.just(false));
+        /**
+         * get optional context id
+         * @param contextView the context view
+         * @return optional contextId
+         */
+        private Optional<String> getOptionalContextId(ContextView contextView) {
+            return contextView.getOrEmpty(REACTIVE_LOCK_CONTEXT_ID_KEY)
+                    .filter(value -> String.class.isAssignableFrom(value.getClass()))
+                    .map(String.class::cast);
         }
 
         @Override
