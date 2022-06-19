@@ -6,6 +6,7 @@ import org.springframework.beans.factory.InitializingBean;
 import pro.chenggang.project.reactive.lock.core.ReactiveLock;
 import pro.chenggang.project.reactive.lock.core.ReactiveLockRegistry;
 import pro.chenggang.project.reactive.lock.core.StatefulReactiveLock;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
@@ -13,6 +14,7 @@ import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -36,6 +38,7 @@ public abstract class AbstractAutoCleanupReactiveLockRegistry implements Reactiv
     private final Map<String, StatefulReactiveLock> lockRegistry = new ConcurrentHashMap<>();
     private final Duration expireEvictIdle;
     private final Duration maxLockLifeTime;
+    private Disposable fluxDisposable;
 
     /**
      * Instantiates a new Abstract auto cleanup reactive lock registry.
@@ -69,7 +72,7 @@ public abstract class AbstractAutoCleanupReactiveLockRegistry implements Reactiv
     public void afterPropertiesSet() {
         String classSimpleName = this.getClass().getSimpleName();
         log.debug("Initialize Auto Remove Unused Lock Execution :{}", classSimpleName);
-        Flux.interval(expireEvictIdle, scheduler)
+        fluxDisposable = Flux.interval(expireEvictIdle, scheduler)
                 .flatMap(value -> {
                     long now = System.currentTimeMillis();
                     if (log.isTraceEnabled()) {
@@ -95,8 +98,11 @@ public abstract class AbstractAutoCleanupReactiveLockRegistry implements Reactiv
 
     @Override
     public void destroy() {
+        log.debug("Shutdown Auto Remove Unused Lock Execution :{}", this.getClass().getSimpleName());
+        if(Objects.nonNull(this.fluxDisposable) && !fluxDisposable.isDisposed()){
+            fluxDisposable.dispose();
+        }
         if (!this.scheduler.isDisposed()) {
-            log.debug("Shutdown Auto Remove Unused Lock Execution :{}", this.getClass().getSimpleName());
             this.scheduler.dispose();
         }
     }
