@@ -191,7 +191,14 @@ public class RedisReactiveLockTests {
                         )
                 )
                 .doOnNext(System.out::println);
-        flux.blockLast();
+        StepVerifier.create(flux)
+                .expectNext(ProcessFunctions.OK)
+                .expectNext(ProcessFunctions.OK)
+                .expectNext(ProcessFunctions.OK)
+                .expectNext(ProcessFunctions.OK)
+                .expectNext(ProcessFunctions.OK)
+                .expectNext(ProcessFunctions.OK)
+                .verifyComplete();
 
     }
 }
