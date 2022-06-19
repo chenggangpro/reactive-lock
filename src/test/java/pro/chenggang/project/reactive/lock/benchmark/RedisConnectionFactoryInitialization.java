@@ -1,5 +1,7 @@
 package pro.chenggang.project.reactive.lock.benchmark;
 
+import io.lettuce.core.ClientOptions;
+import io.lettuce.core.resource.DefaultClientResources;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisConfiguration;
@@ -8,8 +10,6 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
-
-import java.time.Duration;
 
 /**
  * Redis Connection Factory Initialization
@@ -29,11 +29,6 @@ public class RedisConnectionFactoryInitialization {
 
     private GenericObjectPoolConfig cacheRedisPoolConfig() {
         GenericObjectPoolConfig config = new GenericObjectPoolConfig();
-        config.setMaxTotal(1000);
-        config.setMaxIdle(5000);
-        config.setMinIdle(1000);
-        config.setTimeBetweenEvictionRuns(Duration.ofMinutes(1));
-        config.setMaxWait(Duration.ofSeconds(5));
         return config;
     }
 
@@ -48,6 +43,8 @@ public class RedisConnectionFactoryInitialization {
 
     private LettuceClientConfiguration cacheLettuceClientConfiguration(GenericObjectPoolConfig cacheRedisPoolConfig) {
         LettucePoolingClientConfiguration.LettucePoolingClientConfigurationBuilder builder = LettucePoolingClientConfiguration.builder()
+                .clientResources(DefaultClientResources.builder().build())
+                .clientOptions(ClientOptions.builder().build())
                 .poolConfig(cacheRedisPoolConfig);
         return builder.build();
     }

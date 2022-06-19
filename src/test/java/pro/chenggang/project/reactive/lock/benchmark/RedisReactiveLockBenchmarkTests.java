@@ -2,12 +2,9 @@ package pro.chenggang.project.reactive.lock.benchmark;
 
 import org.junit.jupiter.api.Test;
 import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.runner.Runner;
@@ -15,16 +12,12 @@ import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openjdk.jmh.runner.options.TimeValue;
-import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
-import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
-import org.springframework.test.context.event.annotation.BeforeTestClass;
 import pro.chenggang.project.reactive.lock.core.ReactiveLockRegistry;
 import pro.chenggang.project.reactive.lock.core.redis.RedisReactiveLockRegistry;
-import reactor.blockhound.BlockHound;
-import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -35,12 +28,6 @@ import java.util.concurrent.TimeUnit;
  * @since 1.0.0
  */
 public class RedisReactiveLockBenchmarkTests {
-
-    @BeforeTestClass
-    public void init(){
-        Hooks.onOperatorDebug();
-        BlockHound.install();
-    }
 
     private ChainedOptionsBuilder setupOptions(Mode mode, TimeUnit timeUnit) {
         return new OptionsBuilder()
@@ -73,23 +60,20 @@ public class RedisReactiveLockBenchmarkTests {
         new Runner(opt).run();
     }
 
+    private static final ReactiveLockRegistry reactiveLockRegistry;
+
+    static {
+        ReactiveRedisConnectionFactory reactiveRedisConnectionFactory = new RedisConnectionFactoryInitialization().reactiveRedisConnectionFactory();
+        reactiveLockRegistry = new RedisReactiveLockRegistry(reactiveRedisConnectionFactory,Duration.ofSeconds(10),Duration.ofSeconds(30),"REACTIVE_LOCK_BENCHMARK");
+        try {
+            ((InitializingBean) reactiveLockRegistry).afterPropertiesSet();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @State(Scope.Benchmark)
     public static class RedisReactiveLockRegistryBenchmark {
-
-        private ReactiveLockRegistry reactiveLockRegistry;
-        private ReactiveRedisConnectionFactory reactiveRedisConnectionFactory = new RedisConnectionFactoryInitialization().reactiveRedisConnectionFactory();
-
-        @Setup(Level.Trial)
-        public void start() throws Exception {
-            reactiveLockRegistry = new RedisReactiveLockRegistry(reactiveRedisConnectionFactory,Duration.ofSeconds(10),Duration.ofSeconds(30),"REACTIVE_LOCK_BENCHMARK");
-            ((InitializingBean) reactiveLockRegistry).afterPropertiesSet();
-        }
-
-        @TearDown(Level.Trial)
-        public void shutdown() throws Exception{
-            ((DisposableBean) reactiveLockRegistry).destroy();
-            ((LettuceConnectionFactory)reactiveRedisConnectionFactory).resetConnection();
-        }
 
         @Benchmark
         public void testTryLock(Blackhole blackhole) {
@@ -100,6 +84,7 @@ public class RedisReactiveLockBenchmarkTests {
                                     return Mono.just(0);
                                 }
                                 return  Mono.just(1)
+                                        .publishOn(Schedulers.boundedElastic())
                                         .delayElement(Duration.ofSeconds(3));
                             }
                     )
@@ -116,6 +101,7 @@ public class RedisReactiveLockBenchmarkTests {
                                     return Mono.just(0);
                                 }
                                 return  Mono.just(1)
+                                        .publishOn(Schedulers.boundedElastic())
                                         .delayElement(Duration.ofSeconds(3));
                             }
                     )

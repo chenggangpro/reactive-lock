@@ -17,11 +17,8 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openjdk.jmh.runner.options.TimeValue;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.test.context.event.annotation.BeforeTestClass;
 import pro.chenggang.project.reactive.lock.core.ReactiveLockRegistry;
 import pro.chenggang.project.reactive.lock.core.defaults.DefaultReactiveLockRegistry;
-import reactor.blockhound.BlockHound;
-import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -34,12 +31,6 @@ import java.util.concurrent.TimeUnit;
  * @since 1.0.0
  */
 public class DefaultReactiveLockBenchmarkTests {
-
-    @BeforeTestClass
-    public void init() {
-        Hooks.onOperatorDebug();
-        BlockHound.install();
-    }
 
     private ChainedOptionsBuilder setupOptions(Mode mode, TimeUnit timeUnit) {
         return new OptionsBuilder()
