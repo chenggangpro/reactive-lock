@@ -101,7 +101,7 @@ public class RedisReactiveLockTests {
         //default lock expire is 10S
         String lockKey = "LOCK_WITHIN_EXPIRE_TIME";
         ProcessFunctions processFunctions = new ProcessFunctions();
-        Flux<String> flux = Flux.range(0, 10000)
+        Flux<String> flux = Flux.range(0, 3)
                 .flatMap(value -> this.redisReactiveLockRegistry.obtain(lockKey)
                         .lockThenExecute(
                                 Duration.ofSeconds(10),
@@ -113,7 +113,11 @@ public class RedisReactiveLockTests {
                                 }
                         )
                 );
-        flux.blockLast();
+        StepVerifier.create(flux)
+                .expectNext(ProcessFunctions.OK)
+                .expectNext(ProcessFunctions.OK)
+                .expectNext(ProcessFunctions.OK)
+                .verifyComplete();
 
     }
 
@@ -142,4 +146,52 @@ public class RedisReactiveLockTests {
                 .verifyComplete();
     }
 
+    @Test
+    public void testAcquireOnce2() throws Exception {
+        ProcessFunctions processFunctions = new ProcessFunctions();
+        String lockKey = "LOCK_ONCE";
+        Flux<String> flux = Flux.range(0, 5)
+                .flatMapSequential(value -> this.redisReactiveLockRegistry.obtain(lockKey)
+                        .tryLockThenExecuteMany(
+                                lockResult -> {
+                                    if(!lockResult){
+                                        return Flux.just(ProcessFunctions.FAILED);
+                                    }
+                                    return processFunctions.processFunction().repeat().take(2,true);
+                                }
+                        )
+                )
+                .doOnNext(System.out::println);
+        StepVerifier.create(flux)
+                .expectNext(ProcessFunctions.OK)
+                .expectNext(ProcessFunctions.OK)
+                .expectNext(ProcessFunctions.FAILED)
+                .expectNext(ProcessFunctions.FAILED)
+                .expectNext(ProcessFunctions.FAILED)
+                .expectNext(ProcessFunctions.FAILED)
+                .verifyComplete();
+
+    }
+
+    @Test
+    public void testAcquireDurationWithinExpireTime2() throws Exception {
+        //default lock expire is 10S
+        String lockKey = "LOCK_WITHIN_EXPIRE_TIME";
+        ProcessFunctions processFunctions = new ProcessFunctions();
+        Flux<String> flux = Flux.range(0, 3)
+                .flatMap(value -> this.redisReactiveLockRegistry.obtain(lockKey)
+                        .lockThenExecuteMany(
+                                Duration.ofSeconds(10),
+                                lockResult -> {
+                                    if(!lockResult){
+                                        return Flux.just(ProcessFunctions.FAILED);
+                                    }
+                                    return processFunctions.processDelayFunction(Duration.ofSeconds(2)).repeat().take(2);
+                                }
+                        )
+                )
+                .doOnNext(System.out::println);
+        flux.blockLast();
+
+    }
 }
