@@ -224,24 +224,32 @@ public class CLHJvmReactiveLock implements StatefulReactiveLock {
      * @return release result
      */
     private Mono<Boolean> releaseCLHNode(CLHNode clhNode) {
-        if (!clhNode.isLocked) {
+        // if node is not locked or node has been released already
+        if (!clhNode.isLocked || clhNode.getAcquire()) {
             return Mono.just(true);
         }
-        boolean releaseResult = false;
+        // if tail exists and tail is not current node,
+        // then set current's isLocked to false,
+        // thus others can obtain the lock
+        // otherwise, there is no one to obtain lock ,
+        // then return release success
         if (!UPDATER.compareAndSet(this, clhNode, null)) {
-            releaseResult = true;
-            clhNode.isLocked = false;
             lockAt.getAndSet(-1);
             isInProgress.getAndSet(false);
-        }
-        return Mono.just(releaseResult);
+            clhNode.isLocked = false;
+        };
+        return Mono.just(clhNode.compareAndSet(false,true));
     }
 
     /**
      * CLH Node
+     * in case of reactor's usingWhen() release node more than once
      */
     @ToString
-    private static class CLHNode {
+    private static class CLHNode extends AtomicBoolean{
+
+        private static final long serialVersionUID = -1669794616983016749L;
+
         private final String nodeId = UUID.randomUUID().toString();
         private volatile boolean isLocked = true;
         private volatile long lockAt;

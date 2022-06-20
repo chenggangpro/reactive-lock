@@ -71,6 +71,25 @@ public class CLHJvmReactiveLockTests {
     }
 
     @Test
+    public void testAcquireOnce2() throws Exception {
+        ProcessFunctions processFunctions = new ProcessFunctions();
+        Mono<String> mono = this.clhReactiveLockRegistry.obtain()
+                .tryLockThenExecute(
+                        lockResult -> {
+                            if (!lockResult) {
+                                return Mono.just(FAILED);
+                            }
+                            return processFunctions.processFunction();
+                        }
+                )
+                .doOnNext(System.out::println);
+        StepVerifier.create(mono)
+                .expectNext(OK)
+                .verifyComplete();
+
+    }
+
+    @Test
     public void testAcquireDurationWithinExpireTime() throws Exception {
         //default lock expire is 10S
         ProcessFunctions processFunctions = new ProcessFunctions();

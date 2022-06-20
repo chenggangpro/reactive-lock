@@ -229,6 +229,11 @@ public class MCSJvmReactiveLock implements StatefulReactiveLock {
      * @return release result
      */
     private Mono<Boolean> releaseMCSNode(MCSNode mcsNode) {
+        // if node has been released already
+        if(mcsNode.getAcquire()){
+            return Mono.just(true);
+        }
+        mcsNode.compareAndSet(false,true);
         return Mono.just(mcsNode)
                 .filter(currentNode -> Objects.isNull(currentNode.next))
                 .flatMap(currentNode -> {
@@ -255,9 +260,12 @@ public class MCSJvmReactiveLock implements StatefulReactiveLock {
 
     /**
      * MCS Node
+     * in case of reactor's usingWhen() release node more than once
      */
     @ToString
-    private static class MCSNode {
+    private static class MCSNode extends AtomicBoolean{
+
+        private static final long serialVersionUID = -4741467022303970726L;
 
         private final String nodeId = UUID.randomUUID().toString();
         private volatile MCSNode next;

@@ -118,4 +118,23 @@ public class MCSJvmReactiveLockTests {
                 .verifyComplete();
     }
 
+    @Test
+    public void testAcquireOnce2() throws Exception {
+        ProcessFunctions processFunctions = new ProcessFunctions();
+        Mono<String> mono = this.mcsReactiveLockRegistry.obtain()
+                .tryLockThenExecute(
+                        lockResult -> {
+                            if (!lockResult) {
+                                return Mono.just(FAILED);
+                            }
+                            return processFunctions.processFunction();
+                        }
+                )
+                .doOnNext(System.out::println);
+        StepVerifier.create(mono)
+                .expectNext(OK)
+                .verifyComplete();
+
+    }
+
 }
