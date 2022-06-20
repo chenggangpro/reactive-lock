@@ -26,7 +26,7 @@ import static pro.chenggang.project.reactive.lock.properties.ReactiveLockPropert
 @Import({ReactiveLockAutoConfigurationImportSelector.class})
 @Configuration(proxyBeanMethods = false)
 @AutoConfigureAfter(RedisReactiveAutoConfiguration.class)
-@ConditionalOnClass({ReactiveLockRegistry.class, RedisReactiveAutoConfiguration.class, ReactiveRedisConnectionFactory.class, Flux.class})
+@ConditionalOnClass({ReactiveLockRegistry.class, Flux.class})
 public class ReactiveLockAutoConfiguration {
 
     /**
